@@ -16,7 +16,7 @@ async function openFile(app, id) {
 }
 
 // ---------------- Evidence ----------------
-export function EvidenceForm({ caseId, x, onDone }) {
+export function EvidenceForm({ caseId, x, onDone, nested }) {
   const app = useApp(); const v = app.v;
   const [f, setF] = useState({ title: x?.title || '', kind: x?.kind || 'Document', obtainedOn: x?.obtainedOn ? formatDate(x.obtainedOn) : '', source: x?.source || '', originalLocation: x?.originalLocation || '', notes: x?.notes || '', allegationIds: x?.allegationIds || [], eventIds: x?.eventIds || [] });
   const [file, setFile] = useState(null);
@@ -44,19 +44,20 @@ export function EvidenceForm({ caseId, x, onDone }) {
       {allegationsOf(v, caseId).map(a => <label class="row small" style="padding:3px 0"><input type="checkbox" checked={f.allegationIds.includes(a.id)} onChange={() => tog('allegationIds', a.id)} /> A{a.n} · {a.title}</label>)}</details>
     <details style="margin-top:6px"><summary class="small">Supports which timeline events ({f.eventIds.length})</summary>
       {eventsOf(v, caseId).map(e => <label class="row small" style="padding:3px 0"><input type="checkbox" checked={f.eventIds.includes(e.id)} onChange={() => tog('eventIds', e.id)} /> {formatDate(e.date)} · {e.title}</label>)}</details>
-    <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>Save</button>{x && <DelBtn coll="evidence" id={x.id} onDone={onDone} what="this evidence entry" />}</div>
+    <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>{nested ? 'Add this evidence' : 'Save'}</button>{nested && <button class="btn g" onClick={() => onDone(null)}>Cancel</button>}{x && <DelBtn coll="evidence" id={x.id} onDone={onDone} what="this evidence entry" />}</div>
   </div>;
 }
 
-export function EvidencePicker({ caseId, selected, onDone, inline }) {
+export function EvidencePicker({ caseId, selected, onDone, inline, onAdding }) {
   const app = useApp(); const v = useVault(); const [sel, setSel] = useState(selected || []); const [adding, setAdding] = useState(false);
   const all = v.list('evidence', x => x.caseId === caseId);
   const toggle = id => { const n = sel.includes(id) ? sel.filter(z => z !== id) : [...sel, id]; setSel(n); if (inline) onDone(n); };
-  if (adding) return <EvidenceForm caseId={caseId} onDone={id => { setAdding(false); if (id) toggle(id); }} />;
+  const setAdd = b => { setAdding(b); onAdding?.(b); };
+  if (adding) return <div class="subform"><b>New evidence</b><EvidenceForm caseId={caseId} nested onDone={id => { setAdd(false); if (id) toggle(id); }} /></div>;
   return <div>
     {!all.length && <div class="small mut">No evidence registered yet.</div>}
     {all.map(x => <label class="row" style="padding:5px 0" key={x.id}><input type="checkbox" checked={sel.includes(x.id)} onChange={() => toggle(x.id)} /> <span>{x.title} <span class="tiny mut">{x.kind}</span></span></label>)}
-    <div class="row" style="margin-top:8px"><button class="btn g s" onClick={() => setAdding(true)}>+ New evidence</button>{!inline && <button class="btn" onClick={() => onDone(sel)}>Done</button>}</div>
+    <div class="row" style="margin-top:8px"><button class="btn g s" onClick={() => setAdd(true)}>+ New evidence</button>{!inline && <button class="btn" onClick={() => onDone(sel)}>Done</button>}</div>
   </div>;
 }
 
@@ -117,6 +118,7 @@ function DeadlineForm({ caseId, x, onDone }) {
 function DirectionForm({ caseId, x, onDone }) {
   const app = useApp(); const v = app.v; const procs = proceedingsOf(v, caseId);
   const [f, setF] = useState({ proceedingId: x?.proceedingId || procs[0]?.id || '', orderDate: x?.orderDate ? formatDate(x.orderDate) : '', text: x?.text || '', status: x?.status || 'to comply', complianceNotes: x?.complianceNotes || '', evidenceIds: x?.evidenceIds || [] });
+  const [addingEv, setAddingEv] = useState(false);
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const save = async () => { const od = dateIn(f.orderDate); if (od === undefined || !f.text.trim()) return app.toast('Add the direction and order date'); const data = { ...f, orderDate: od, caseId }; if (x) await v.patch('directions', x.id, data); else await v.put('directions', data); onDone(); };
   return <div>
@@ -124,8 +126,8 @@ function DirectionForm({ caseId, x, onDone }) {
     <Field label="What the court directed (that applies to you)"><textarea rows={3} value={f.text} onInput={set('text')} /></Field>
     <Field label="Status"><select value={f.status} onChange={set('status')}>{['to comply', 'complying (ongoing)', 'complied', 'stayed', 'not applicable'].map(s => <option>{s}</option>)}</select></Field>
     <Field label="What you did to comply"><TextBox value={f.complianceNotes} rows={3} onInput={t => setF({ ...f, complianceNotes: t })} /></Field>
-    <Field label="Proof of compliance"><EvidencePicker caseId={caseId} selected={f.evidenceIds} inline onDone={ids => setF({ ...f, evidenceIds: ids })} /></Field>
-    <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>Save</button>{x && <DelBtn coll="directions" id={x.id} onDone={onDone} />}</div>
+    <Field label="Proof of compliance"><EvidencePicker caseId={caseId} selected={f.evidenceIds} inline onAdding={setAddingEv} onDone={ids => setF({ ...f, evidenceIds: ids })} /></Field>
+    {!addingEv && <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>Save</button>{x && <DelBtn coll="directions" id={x.id} onDone={onDone} />}</div>}
   </div>;
 }
 

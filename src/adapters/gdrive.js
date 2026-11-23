@@ -84,6 +84,14 @@ export class GoogleDriveAdapter {
   async upload(name, blob, folderKey = 'documents', ids) {
     ids ||= await this.ensure();
     const meta = { name, parents: [ids[folderKey]] };
+    if (blob.size > 4 * 1024 * 1024) { // videos and big scans: resumable upload (multipart is limited to 5 MB)
+      const start = await this.req(`${UP}/files?uploadType=resumable&fields=id,name`, { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': blob.type || 'application/octet-stream', 'X-Upload-Content-Length': String(blob.size) }, body: JSON.stringify(meta) });
+      const loc = start.headers.get('Location'); if (!loc) throw new Error('Drive did not start the upload');
+      const t = await this.auth();
+      const put = await fetch(loc, { method: 'PUT', headers: { Authorization: 'Bearer ' + t, 'Content-Type': blob.type || 'application/octet-stream' }, body: blob });
+      if (!put.ok) throw new Error(`Drive upload ${put.status}: ${(await put.text()).slice(0, 200)}`);
+      return (await put.json()).id;
+    }
     const fd = new FormData(); fd.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' })); fd.append('file', blob);
     const r = await (await this.req(`${UP}/files?uploadType=multipart&fields=id,name`, { method: 'POST', body: fd })).json();
     return r.id;

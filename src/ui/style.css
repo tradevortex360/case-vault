@@ -151,3 +151,5 @@ a.btn{text-decoration:none;display:inline-block}
 .proc .st.pending{color:var(--warn)}.proc .st.disposed,.proc .st.allowed{color:var(--ok)}
 .proc .sub{grid-column:1/-1;font-size:13.5px;color:var(--mut)}
 .case-id{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+
+.subform{border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:10px 12px;margin:6px 0;background:var(--raise)}

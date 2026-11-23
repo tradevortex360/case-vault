@@ -25,7 +25,7 @@ export function Verify({ caseId }) {
 
 function Resolve({ x, caseId, onDone }) {
   const app = useApp(); const v = app.v;
-  const [val, setVal] = useState(x.resolution?.value || ''); const [note, setNote] = useState(x.resolution?.note || ''); const [ev, setEv] = useState(x.resolution?.evidenceIds || []);
+  const [val, setVal] = useState(x.resolution?.value || ''); const [note, setNote] = useState(x.resolution?.note || ''); const [ev, setEv] = useState(x.resolution?.evidenceIds || []); const [addingEv, setAddingEv] = useState(false);
   const save = async () => {
     if (!val.trim()) return app.toast('Choose or type the correct version');
     const ch = [{ coll: 'verifications', key: x.id, kind: 'patch', data: { status: 'resolved', resolution: { value: val.trim(), note, evidenceIds: ev, at: Date.now() } } }];
@@ -37,8 +37,8 @@ function Resolve({ x, caseId, onDone }) {
     {(x.variants || []).map((vr, i) => <label class="row" style="padding:6px 0" key={i}><input type="radio" name="vv" checked={val === vr.value} onChange={() => setVal(vr.value)} /> <span>{vr.value}</span></label>)}
     <Field label="Correct version"><input type="text" value={val} onInput={e => setVal(e.currentTarget.value)} placeholder={x.kind === 'date' ? 'e.g. 10.11.2023' : ''} /></Field>
     <Field label="Why you say this (optional)"><TextBox value={note} rows={2} onInput={setNote} /></Field>
-    <Field label="Supporting documents (optional)"><EvidencePicker caseId={caseId} selected={ev} onDone={setEv} inline /></Field>
-    <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Save</button></div>
+    <Field label="Supporting documents (optional)"><EvidencePicker caseId={caseId} selected={ev} onDone={setEv} inline onAdding={setAddingEv} /></Field>
+    {!addingEv && <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Settle this</button></div>}
   </Sheet>;
 }
 
