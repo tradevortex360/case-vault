@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox } from './core.jsx';
+import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox, Gloss } from './core.jsx';
 import { eventsOf, proceedingsOf, docCite, paraWord } from '../domain.js';
 import { formatDate, parseDate } from '../search/dates.js';
 import { EvidencePicker } from './trackers.jsx';
@@ -59,7 +59,7 @@ export function Timeline({ caseId }) {
       return [head && <div class="tiny mut" style="padding:8px 14px 2px;font-weight:600;border-top:1px solid var(--line)" key={'y' + y}>{y}</div>,
         <div class="item" key={e.id} onClick={() => app.nav('case', caseId, 'ev', e.id)}>
           <div class="d">{formatDate(e.date)}</div>
-          <div class="grow"><b>{e.title}</b>
+          <div class="grow"><b><Gloss text={e.title} /></b>
             <div>{al && <span class={'tag ' + at}>{al}</span>}{e.verified?.status === 'verified' && <span class="tag ok">✓ verified</span>}{e.verified?.status === 'disputed' && <span class="tag bad">disputed</span>}
               {(e.evidenceIds || []).length > 0 && <span class="tag">📎 {e.evidenceIds.length}</span>}{(e.sources || []).length > 1 && <span class="tag">{e.sources.length} sources</span>}{e.manual && <span class="tag">added by me</span>}</div></div></div>];
     })}</div>
@@ -77,7 +77,7 @@ export function EventPage({ caseId, eventId }) {
   return <main>
     <div class="card pad">
       <div class="mut small">{formatDate(e.date)}{e.kind ? ' · ' + e.kind : ''}</div>
-      <h2 style="margin:4px 0">{e.title}</h2>
+      <h2 style="margin:4px 0"><Gloss text={e.title} /></h2>
       <div>{al && <span class={'tag ' + at}>{al}</span>}{e.verified?.status === 'verified' && <span class="tag ok">✓ verified by you</span>}{e.manual && <span class="tag">added by you</span>}</div>
       {e.desc && <p style="white-space:pre-wrap">{e.desc}</p>}
       {e.verified?.note && <div class="box ok small"><b>Your note:</b> {e.verified.note}</div>}

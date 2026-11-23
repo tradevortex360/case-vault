@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-import { useApp, useVault, Sheet, Field, Empty, confirmBox } from './core.jsx';
+import { useApp, useVault, Sheet, Field, Empty, confirmBox, Gloss } from './core.jsx';
 import { CaseForm } from './cases.jsx';
 import { Timeline, EventPage } from './timeline.jsx';
 import { Documents, DocPage } from './documents.jsx';
@@ -79,7 +79,7 @@ function FactsCard({ c }) {
     {!items.length && <p class="small mut" style="margin:6px 0 0">Case numbers, key dates, addresses and amounts you need when a lawyer calls. Tap one to copy it.</p>}
     {items.length > 0 && <div class="facts">{shown.map((it, i) => <button type="button" class="fact" key={i} onClick={() => copy(it, i)} title="Tap to copy">
       <span class="fl">{it.label}</span>
-      <span class="fv">{splitFact(it.value).map((t, k) => k ? <span class="fd" key={k}>{t}</span> : <b key={k}>{t}</b>)}</span>
+      <span class="fv">{splitFact(it.value).map((t, k) => k ? <span class="fd" key={k}><Gloss text={t} /></span> : <b key={k}><Gloss text={t} /></b>)}</span>
       <span class={'fc' + (copied === i ? ' on' : '')} aria-label={copied === i ? 'Copied' : 'Copy'}>{copied === i ? <TickIcon /> : <CopyIcon />}</span>
     </button>)}</div>}
     {items.length > 12 && <button class="lnk more" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length} facts`}</button>}
@@ -130,7 +130,7 @@ function Overview({ caseId }) {
       <span class="k">Next date in court</span>
       <div><div class="date">{longDate(nx.date)}</div><div class="when">{weekday(nx.date)}, {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}</div></div>
       <div class="acts"><a class="btn g s" href={calendarLink(`${proc?.number || ''} ${purpose}`.trim(), nx.date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>
-      <div class="what">{purpose}{proc ? <span class="mut"> in {proc.number}{proc.court ? ', ' + proc.court : ''}</span> : ''}</div>
+      <div class="what"><Gloss text={purpose} />{proc ? <span class="mut"> in {proc.number}{proc.court ? ', ' + proc.court : ''}</span> : ''}</div>
     </section> : <section class="next none" aria-label="Next date in court">
       <span class="k">Next date in court</span>
       <div><div class="date">No date recorded</div><div class="when">Log the last hearing and its next date so it shows here.</div></div>
@@ -149,7 +149,7 @@ function Overview({ caseId }) {
       {!procs.length && <p class="small mut" style="margin:6px 0 0">Each court number (for example AC 123/2026 or MS 456/2023) is a proceeding inside this case.</p>}
       {procs.length > 0 && <div class="procs">{procs.map(p => <button type="button" class="proc" key={p.id} onClick={() => editProc(p)}>
         <span class="no">{p.number}</span><span class={'st ' + (p.status || '').toLowerCase()}>{p.status}</span>
-        <span class="sub">{[p.title, p.court].filter(Boolean).join(', ')}</span></button>)}</div>}
+        <span class="sub"><Gloss text={[p.title, p.court].filter(Boolean).join(', ')} /></span></button>)}</div>}
     </section>
     <section class="card pad case-id"><div><b>{c.name}</b>{c.opponent && <div class="small mut">Other side: {c.opponent}{c.myRole ? '. You: ' + c.myRole : ''}</div>}</div>
       <span class="row"><button class="lnk" onClick={() => app.sheet.open(close => <Sheet title="Edit case" onClose={close}><CaseForm c={c} onDone={close} /></Sheet>)}>Edit</button>

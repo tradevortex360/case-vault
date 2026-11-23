@@ -1,6 +1,7 @@
 import { createContext, h } from 'preact';
 import { useContext, useEffect, useRef, useState, useCallback } from 'preact/hooks';
 import { docName } from '../domain.js';
+import { glossParts } from '../legal.js';
 
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -171,3 +172,12 @@ export function openPdf(app, doc, page) {
 export const fmtMoney = n => '₹' + Number(n || 0).toLocaleString('en-IN');
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 export function Empty({ children }) { return <div class="empty">{children}</div>; }
+
+// Text with legal shorthand underlined; tap a term to see what it means.
+export function Gloss({ text }) {
+  const app = useContext(Ctx);
+  if (!text) return null;
+  const parts = glossParts(String(text));
+  if (parts.length === 1 && typeof parts[0] === 'string') return text;
+  return parts.map((x, i) => typeof x === 'string' ? x : <span key={i} class="gl-t" role="button" tabIndex={0} title={x.tip} onClick={e => { e.stopPropagation(); e.preventDefault(); app?.toast(x.term + '\n' + x.tip, 9000); }} onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); app?.toast(x.term + '\n' + x.tip, 9000); } }}>{x.term}</span>);
+}

@@ -82,7 +82,7 @@ export function resultToChanges(v, r) {
     case 'story': return [{ coll: 'stories', key: r.caseId + '-' + r.length, kind: 'put', data: { id: r.caseId + '-' + r.length, caseId: r.caseId, length: r.length, text: r.text, at: r.at || Date.now() } }];
     case 'patch': // field updates to existing records, e.g. renaming documents: { type:'patch', patches:[{ coll, id, data }] }
       // x.if = { field: expected } applies the patch only if the record still has that value (never overwrites your later edits)
-      return (r.patches || []).filter(x => COLLECTIONS.includes(x.coll) && v.get(x.coll, x.id) && x.data && typeof x.data === 'object' && Object.entries(x.if || {}).every(([k, val]) => v.get(x.coll, x.id)[k] === val)).map(x => ({ coll: x.coll, key: x.id, kind: 'patch', data: x.data }));
+      return (r.patches || []).filter(x => COLLECTIONS.includes(x.coll) && v.get(x.coll, x.id) && x.data && typeof x.data === 'object' && Object.entries(x.if || {}).every(([k, val]) => JSON.stringify(v.get(x.coll, x.id)[k]) === JSON.stringify(val))).map(x => ({ coll: x.coll, key: x.id, kind: 'patch', data: x.data }));
     case 'summary': return v.get('documents', r.docId) ? [{ coll: 'documents', key: r.docId, kind: 'patch', data: { summary: r.text } }] : [];
     case 'import': { // full records with fixed ids (migration / restore from file); never overwrites existing records
       const ch = [];

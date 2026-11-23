@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useState, useMemo } from 'preact/hooks';
-import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, PointLines, TextBox } from './core.jsx';
+import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, PointLines, TextBox, Gloss } from './core.jsx';
 import { allegationsOf, allegationProgress, repliesFor, paraStatus, datesIn, eventsOf, nextAllegationNo, addDays, docCite } from '../domain.js';
 import { ReplyComposer, ReplyView } from './replies.jsx';
 import { requestJob } from '../claude/jobs.js';
@@ -109,7 +109,7 @@ export function AllegationPage({ caseId, alId }) {
         <div class="between"><b class="small">{docCite(v, d, p.ref)}</b>
           <span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}
             <span class={'tag ' + (st === 'answered' || st === 'common' ? 'ok' : st === 'suggested' ? 'warn' : 'bad')}>{{ answered: 'answered', common: 'common reply', suggested: 'suggestion', open: 'not answered' }[st]}</span></span></div>
-        <div class="quote">{p.text}</div>
+        <div class="quote"><Gloss text={p.text} /></div>
         {p.translation && <div class="small" style="margin-top:4px"><span class="tag">English translation</span> {p.translation}</div>}
         {own.map(r => <ReplyView r={r} key={r.id} />)}
         <div class="row" style="margin-top:6px">

@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox } from './core.jsx';
+import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox, Gloss } from './core.jsx';
 import { FILED_BY, needsReply, docsOf, parasOf, proceedingsOf, paraStatus, allegationsOf, repliesFor , docName, docLabel, docWhere, filerOf, paraWord } from '../domain.js';
 import { formatDate, parseDate } from '../search/dates.js';
 import { ReplyComposer, ReplyView } from './replies.jsx';
@@ -60,7 +60,7 @@ export function Documents({ caseId }) {
       const fb = FILED_BY[d.filedBy] || FILED_BY.other;
       return <div class="item" key={d.id} onClick={() => app.nav('case', caseId, 'doc', d.id)}>
         <div class="d">{formatDate(d.date)}</div>
-        <div class="grow"><b>{docLabel(v, d)}</b>{filerOf(v, d) && <div class="small mut">Filed by {/^the /.test(filerOf(v, d)) ? '' : 'the '}{filerOf(v, d)}</div>}
+        <div class="grow"><b><Gloss text={docLabel(v, d)} /></b>{filerOf(v, d) && <div class="small mut">Filed by {/^the /.test(filerOf(v, d)) ? '' : 'the '}{filerOf(v, d)}</div>}
           <div><span class={'tag ' + fb.tag}>{fb.label}</span>{procs[d.proceedingId] && <span class="tag">{procs[d.proceedingId].number}</span>}{d.language === 'bn' && <span class="tag">Bengali</span>}
             {needsReply(d) && ps.length > 0 && <span class={'tag ' + (done === ps.length ? 'ok' : 'warn')}>{done}/{ps.length} answered</span>}{sug > 0 && <span class="tag warn">{sug} suggestions</span>}
             {!ps.length && <span class="tag">not read yet</span>}</div></div></div>;
@@ -70,7 +70,7 @@ export function Documents({ caseId }) {
 
 function ParaText({ p, d }) {
   return <div>
-    <div class="quote" lang={p.lang || d.language || 'en'}>{p.text}</div>
+    <div class="quote" lang={p.lang || d.language || 'en'}><Gloss text={p.text} /></div>
     {p.translation && <div class="small" style="margin-top:4px"><span class="tag">English translation</span> {p.translation}</div>}
     {p.corrected && <span class="tag ok">text corrected by you</span>}
   </div>;
@@ -112,8 +112,8 @@ export function DocPage({ caseId, docId }) {
   return <main>
     <div class="card pad">
       <div class="mut small">{formatDate(d.date)} · <span class={'tag ' + fb.tag}>{fb.label}</span></div>
-      <h2 style="margin:4px 0">{docName(d)}</h2>
-      <div class="small mut">{docWhere(v, d, formatDate)}</div>
+      <h2 style="margin:4px 0"><Gloss text={docName(d)} /></h2>
+      <div class="small mut"><Gloss text={docWhere(v, d, formatDate)} /></div>
       {d.title && d.title !== docName(d) && <div class="small" style="margin-top:4px">{d.title}</div>}
       {d.summary && <p class="small">{d.summary}</p>}
       <div class="row">
