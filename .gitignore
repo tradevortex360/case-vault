@@ -1,0 +1,10 @@
+node_modules/
+dist/
+# never commit case content: the app code is public, your data lives only on your devices and in your Drive
+seed-*.json
+*.pdf
+tests/e2e/shots/
+tests/e2e/__pycache__/
+
+# tests use real case material, kept off the public repo
+tests/
