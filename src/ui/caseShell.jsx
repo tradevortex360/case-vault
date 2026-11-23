@@ -13,6 +13,7 @@ import { proceedingsOf, upcoming, allegationsOf, allegationProgress, docsOf, cal
 import { formatDate } from '../search/dates.js';
 
 const TABS = [['overview', 'Overview'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['allegations', 'Allegations'], ['verify', 'For verification'], ['evidence', 'Evidence'], ['hearings', 'Hearings & orders'], ['money', 'Expenses'], ['people', 'People & contacts'], ['ask', 'Ask Claude'], ['exports', 'Export']];
+const GROUP_BEFORE = { overview: 'Case file', evidence: 'Records', ask: 'With Claude' };
 
 export function CaseShell({ caseId }) {
   const app = useApp(); const v = useVault();
@@ -29,10 +30,11 @@ export function CaseShell({ caseId }) {
     allegations: <Allegations caseId={caseId} />, verify: <Verify caseId={caseId} />, evidence: <Evidence caseId={caseId} />,
     hearings: <Hearings caseId={caseId} />, money: <Money caseId={caseId} />, people: <People caseId={caseId} />, ask: <Ask caseId={caseId} />, exports: <Exports caseId={caseId} />,
   }[tab];
-  return <div>
-    <div class="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} role="tab" class={'tab' + (tab === k ? ' on' : '')} onClick={() => app.nav('case', caseId, k)}>{l}
-      {k === 'verify' && vcount > 0 && <span class="n">{vcount}</span>}{k === 'allegations' && sugg > 0 && <span class="n" style="background:var(--warn)">{sugg}</span>}</button>)}</div>
-    {body}
+  return <div class="case">
+    <nav class="tabs" role="tablist" aria-label="Case sections">{TABS.map(([k, l]) => [GROUP_BEFORE[k] && <span class="gl" key={'g' + k} aria-hidden="true">{GROUP_BEFORE[k]}</span>,
+      <button key={k} role="tab" aria-selected={tab === k} class={'tab' + (tab === k ? ' on' : '')} onClick={() => app.nav('case', caseId, k)}>{l}
+      {k === 'verify' && vcount > 0 && <span class="n">{vcount}</span>}{k === 'allegations' && sugg > 0 && <span class="n" style="background:var(--warn)">{sugg}</span>}</button>])}</nav>
+    <div>{body}</div>
   </div>;
 }
 
@@ -53,6 +55,9 @@ export function ProceedingForm({ caseId, p, onDone }) {
   </div>;
 }
 
+const CopyIcon = () => <svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" /><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /></svg>;
+const TickIcon = () => <svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10.5l4 4 8-9" /></svg>;
+
 function FactsCard({ c }) {
   const app = useApp();
   const items = (c.facts || []).filter(it => it.label || it.value);
@@ -60,16 +65,16 @@ function FactsCard({ c }) {
   const edit = () => app.sheet.open(close => <FactsEditor c={c} onDone={close} />);
   const copy = (it, i) => navigator.clipboard?.writeText(it.value).then(() => { setCopied(i); setTimeout(() => setCopied(-1), 1500); }, () => app.toast('Copy not allowed here — long-press the text'));
   const shown = all ? items : items.slice(0, 6);
-  return <div class="card pad">
-    <div class="between"><h3 style="margin:0">Quick facts</h3><button class="lnk" onClick={edit}>{items.length ? 'Edit' : '+ Add'}</button></div>
-    {!items.length && <div class="small mut" style="margin-top:6px">Case numbers, key dates, addresses, amounts — one tap to copy when a lawyer calls.</div>}
-    <div class="facts">{shown.map((it, i) => <button type="button" class="fact" key={i} onClick={() => copy(it, i)} aria-label={'Copy ' + it.label}>
+  return <section class="card pad">
+    <div class="between"><h3 style="margin:0">Quick facts</h3><button class="lnk" onClick={edit}>{items.length ? 'Edit' : 'Add facts'}</button></div>
+    {!items.length && <p class="small mut" style="margin:6px 0 0">Case numbers, key dates, addresses and amounts you need when a lawyer calls. Tap one to copy it.</p>}
+    {items.length > 0 && <div class="facts">{shown.map((it, i) => <button type="button" class="fact" key={i} onClick={() => copy(it, i)} title="Tap to copy">
       <span class="fl">{it.label}</span>
       <span class="fv">{it.value}</span>
-      <span class={'fc' + (copied === i ? ' on' : '')}>{copied === i ? '✓ Copied' : 'Copy'}</span>
-    </button>)}</div>
-    {items.length > 6 && <button class="lnk small" style="margin-top:8px" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length}`}</button>}
-  </div>;
+      <span class={'fc' + (copied === i ? ' on' : '')} aria-label={copied === i ? 'Copied' : 'Copy'}>{copied === i ? <TickIcon /> : <CopyIcon />}</span>
+    </button>)}</div>}
+    {items.length > 6 && <button class="lnk more" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length} facts`}</button>}
+  </section>;
 }
 function FactsEditor({ c, onDone }) {
   const app = useApp();
@@ -99,24 +104,49 @@ function Overview({ caseId }) {
   const dirs = v.list('directions', d => procs.some(p => p.id === d.proceedingId) && d.status !== 'complied' && d.status !== 'not applicable');
   const editProc = p => app.sheet.open(close => <Sheet title={p ? 'Edit proceeding' : 'Add proceeding'} onClose={close}><ProceedingForm caseId={caseId} p={p} onDone={close} /></Sheet>);
   const docCount = docsOf(v, caseId).length;
+  const nx = up.hearings[0];
+  const days = nx ? Math.round((new Date(nx.date + 'T00:00') - new Date(new Date().toDateString())) / 864e5) : null;
+  const proc = nx && procs.find(p => p.id === nx.h.proceedingId);
+  const purpose = nx && ((nx.date === nx.h.nextDate ? nx.h.nextPurpose : nx.h.purpose) || 'Hearing');
+  const attn = [
+    [ver.length, ver.length === 1 ? 'date or fact differs between documents' : 'dates or facts differ between documents', 'Review', 'verify'],
+    [open.length, open.length === 1 ? 'allegation still needs your reply' : 'allegations still need your reply', 'Reply', 'allegations'],
+    [sugg.length, sugg.length === 1 ? 'suggested reply from Claude to check' : 'suggested replies from Claude to check', 'Check', 'allegations'],
+    [dirs.length, dirs.length === 1 ? 'court direction not marked complied' : 'court directions not marked complied', 'Open', 'hearings'],
+    [polish.length, polish.length === 1 ? 'reply typed offline waits for polishing' : 'replies typed offline wait for polishing', 'Open', 'allegations'],
+  ].filter(x => x[0] > 0);
   return <main>
-    {docCount === 0 && <div class="box acc small"><b>Getting started:</b> put this case's PDFs in the <b>inbox</b> folder of your Google Drive "{'Legal'}" folder and tap <b>Update vault</b>. You can also add a document by hand under Documents.</div>}
-    <div class="stats" style="margin-bottom:10px">
-      <div class="card stat" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'hearings')}><span class="mut small">Next date</span><b>{up.hearings[0] ? formatDate(up.hearings[0].date) : '—'}</b><span class="small">{up.hearings[0]?.h.purpose || ''}</span></div>
-      <div class="card stat" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'verify')}><span class="mut small">For verification</span><b>{ver.length}</b><span class="small">dates/facts that differ</span></div>
-      <div class="card stat" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'allegations')}><span class="mut small">Allegations open</span><b>{open.length}</b><span class="small">{sugg.length} suggestions to review</span></div>
-      <div class="card stat" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'hearings')}><span class="mut small">Directions to follow</span><b>{dirs.length}</b><span class="small">not marked complied</span></div>
-    </div>
-    {up.deadlines.length > 0 && <div class="card pad"><h3 style="margin-top:0">Deadlines</h3>{up.deadlines.slice(0, 5).map(d => <div class="between small" key={d.id} style="padding:4px 0"><span><b>{formatDate(d.due)}</b> — {d.what}</span><a href={calendarLink(d.what, d.due, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</div>}
-    {polish.length > 0 && <div class="box warn small">{polish.length} repl{polish.length > 1 ? 'ies' : 'y'} typed offline are waiting to be polished by Claude.</div>}
+    {docCount === 0 && <div class="box acc small"><b>Getting started:</b> put this case's PDFs in the <b>inbox</b> folder of your Google Drive "Legal" folder and tap <b>Update vault</b>. You can also add a document by hand under Documents.</div>}
+    {nx ? <section class="next" aria-label="Next date in court">
+      <span class="k">Next date in court</span>
+      <div><div class="date">{longDate(nx.date)}</div><div class="when">{weekday(nx.date)}, {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}</div></div>
+      <div class="acts"><a class="btn g s" href={calendarLink(`${proc?.number || ''} ${purpose}`.trim(), nx.date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>
+      <div class="what">{purpose}{proc ? <span class="mut"> in {proc.number}{proc.court ? ', ' + proc.court : ''}</span> : ''}</div>
+    </section> : <section class="next none" aria-label="Next date in court">
+      <span class="k">Next date in court</span>
+      <div><div class="date">No date recorded</div><div class="when">Log the last hearing and its next date so it shows here.</div></div>
+      <div class="acts"><button class="btn s" onClick={() => app.nav('case', caseId, 'hearings')}>Log a hearing</button></div>
+    </section>}
+    {up.deadlines.length > 0 && <section class="card pad"><h3 style="margin-top:0">Deadlines</h3>{up.deadlines.slice(0, 5).map(d => <div class="between small" key={d.id} style="padding:4px 0"><span><b>{formatDate(d.due)}</b> {d.what}</span><a href={calendarLink(d.what, d.due, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</section>}
+    <section class="card attn" aria-label="Needs your attention">
+      <h3 style="margin:0;padding:12px 14px 4px">Needs your attention</h3>
+      {attn.length ? attn.map(([n, label, go, tab]) => <button type="button" class="row-a" key={label} onClick={() => app.nav('case', caseId, tab)}>
+        <span class="num">{n}</span><span>{label}</span><span class="go">{go}</span></button>)
+        : <div class="clear">Nothing waiting. Every allegation has a reply and every difference is settled.</div>}
+    </section>
     <FactsCard c={c} />
-    <div class="card pad">
-      <div class="between"><h3 style="margin:0">Proceedings in this case</h3><button class="btn g s" onClick={() => editProc(null)}>+ Add</button></div>
-      {!procs.length && <div class="small mut">Each court number (e.g. AC 123/2026, MS 456/2023) is a proceeding inside this case.</div>}
-      <table class="t" style="margin-top:6px"><tbody>{procs.map(p => <tr key={p.id} style="cursor:pointer" onClick={() => editProc(p)}><td><b>{p.number}</b><div class="small mut">{p.title}</div></td><td class="small">{p.court}</td><td><span class={'tag ' + (p.status === 'Pending' ? 'warn' : '')}>{p.status}</span></td></tr>)}</tbody></table>
-    </div>
-    <div class="card pad"><div class="between"><div><b>{c.name}</b>{c.opponent && <div class="small mut">Other side: {c.opponent}{c.myRole ? ' · You: ' + c.myRole : ''}</div>}</div>
+    <section class="card pad">
+      <div class="between"><h3 style="margin:0">Proceedings</h3><button class="btn g s" onClick={() => editProc(null)}>Add proceeding</button></div>
+      {!procs.length && <p class="small mut" style="margin:6px 0 0">Each court number (for example AC 123/2026 or MS 456/2023) is a proceeding inside this case.</p>}
+      {procs.length > 0 && <div class="procs">{procs.map(p => <button type="button" class="proc" key={p.id} onClick={() => editProc(p)}>
+        <span class="no">{p.number}</span><span class={'st ' + (p.status || '').toLowerCase()}>{p.status}</span>
+        <span class="sub">{[p.title, p.court].filter(Boolean).join(', ')}</span></button>)}</div>}
+    </section>
+    <section class="card pad case-id"><div><b>{c.name}</b>{c.opponent && <div class="small mut">Other side: {c.opponent}{c.myRole ? '. You: ' + c.myRole : ''}</div>}</div>
       <span class="row"><button class="lnk" onClick={() => app.sheet.open(close => <Sheet title="Edit case" onClose={close}><CaseForm c={c} onDone={close} /></Sheet>)}>Edit</button>
-        <button class="lnk" onClick={async () => { if (await confirmBox(app, c.archived ? 'Restore this case?' : 'Archive this case? Nothing is deleted; it moves to "Archived".', c.archived ? 'Restore' : 'Archive')) await v.patch('cases', caseId, { archived: !c.archived }); }}>{c.archived ? 'Restore' : 'Archive'}</button></span></div></div>
+        <button class="lnk" onClick={async () => { if (await confirmBox(app, c.archived ? 'Restore this case?' : 'Archive this case? Nothing is deleted; it moves to "Archived".', c.archived ? 'Restore' : 'Archive')) await v.patch('cases', caseId, { archived: !c.archived }); }}>{c.archived ? 'Restore' : 'Archive'}</button></span></section>
   </main>;
 }
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function longDate(iso) { const [y, m, d] = iso.split('-').map(Number); return `${d} ${MONTHS[m - 1]} ${y}`; }
+function weekday(iso) { return new Date(iso + 'T00:00').toLocaleDateString('en-IN', { weekday: 'long' }); }

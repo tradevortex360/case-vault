@@ -1,7 +1,7 @@
 {
   "name": "case-vault",
   "version": "1.0.0",
-  "description": "Case Vault \u2014 personal offline case manager",
+  "description": "Case Vault — personal offline case manager",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

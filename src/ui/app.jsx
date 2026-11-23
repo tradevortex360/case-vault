@@ -50,7 +50,7 @@ export function App({ v, inClaude, claude }) {
       <div class="top">
         {showBack && <button class="back" aria-label="Back" onClick={() => router.back()}>‹</button>}
         <h1>{title}</h1>
-        <button class="btn g s gear" aria-label="Settings" onClick={() => router.nav('settings')}>⚙</button>
+        <button class="btn g s gear" aria-label="Settings" title="Settings" onClick={() => router.nav('settings')}><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h8M15 5.5h2M3 10h3M10 10h7M3 14.5h9M16 14.5h1" /><circle cx="13" cy="5.5" r="1.8" /><circle cx="8" cy="10" r="1.8" /><circle cx="14" cy="14.5" r="1.8" /></svg></button>
         <div class="acts"><SyncBadge />
           <button class="btn g s" aria-label="Search" onClick={() => sheet.open(close => <SearchSheet onClose={close} caseId={p0 === 'case' ? p1 : null} />)}>Search</button>
           <button class="btn s" onClick={updateVault} title="Process new documents in the Drive inbox and run queued Claude jobs">Update vault</button></div>
