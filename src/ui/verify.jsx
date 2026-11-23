@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import { useApp, useVault, Sheet, Field, Empty, openPdf, TextBox } from './core.jsx';
 import { EvidencePicker } from './trackers.jsx';
 import { parseDate, formatDate } from '../search/dates.js';
+import { docCite, paraWord } from '../domain.js';
 
 export function Verify({ caseId }) {
   const app = useApp(); const v = useVault(); const [show, setShow] = useState('open');
@@ -15,7 +16,7 @@ export function Verify({ caseId }) {
     {!items.length && <Empty>{show === 'open' ? 'Nothing waiting for verification.' : 'None.'}</Empty>}
     {items.map(x => <div class="card pad" key={x.id}>
       <div class="between"><b>{x.title}</b>{x.status === 'resolved' ? <span class="tag ok">settled</span> : <span class="tag bad">open</span>}</div>
-      {(x.variants || []).map((vr, i) => <div key={i} class="small" style="margin:4px 0">• <b>{vr.value}</b>{(vr.sources || []).map((s, j) => { const d = s.docId && v.get('documents', s.docId); return <span key={j} class="mut"> — {s.label || (d ? (d.short || d.title) : '')}{s.ref ? ' ' + s.ref : ''}{d?.fileId && s.page ? <> (<button class="lnk" onClick={() => openPdf(app, d, s.page)}>p.{s.page}</button>)</> : ''}</span>; })}</div>)}
+      {(x.variants || []).map((vr, i) => <div key={i} class="small" style="margin:4px 0">• <b>{vr.value}</b>{(vr.sources || []).map((s, j) => { const d = s.docId && v.get('documents', s.docId); return <span key={j} class="mut"> — {d ? docCite(v, d, s.ref) : (s.label || '') + (s.ref ? ', ' + paraWord(s.ref) : '')}{d?.fileId && s.page ? <> (<button class="lnk" onClick={() => openPdf(app, d, s.page)}>p.{s.page}</button>)</> : ''}</span>; })}</div>)}
       {x.status === 'resolved' && x.resolution && <div class="box ok small"><b>Your answer:</b> {x.resolution.value}{x.resolution.note ? ' — ' + x.resolution.note : ''}{(x.resolution.evidenceIds || []).length ? ` · 📎 ${x.resolution.evidenceIds.length} supporting` : ''}</div>}
       <button class="btn s" style="margin-top:6px" onClick={() => app.sheet.open(close => <Resolve x={x} caseId={caseId} onDone={close} />)}>{x.status === 'resolved' ? 'Change' : 'Settle this'}</button>
     </div>)}

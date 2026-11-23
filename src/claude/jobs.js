@@ -3,7 +3,7 @@
 import { applyResult } from './merge.js';
 import { polishPrompt, suggestPrompt, consolidatePrompt, storyPrompt, extractPrompt } from './prompts.js';
 import { SearchIndex, buildItems } from '../search/index.js';
-import { parasOf, paraStatus, allegationsOf, proceedingsOf, eventsOf, docsOf, needsReply } from '../domain.js';
+import { parasOf, paraStatus, allegationsOf, proceedingsOf, eventsOf, docsOf, needsReply, docCite, paraWord } from '../domain.js';
 import { formatDate } from '../search/dates.js';
 import { toJSON } from '../store/ops.js';
 
@@ -54,7 +54,7 @@ export async function runJob(app, job) {
       const a = v.get('allegations', p.allegationId);
       const reps = v.list('replies', r => r.allegationId === a.id && r.status === 'accepted').map(r => {
         const pr = r.paraId && v.get('paragraphs', r.paraId); const d = pr && v.get('documents', pr.docId);
-        return { label: pr ? `${d?.short || d?.title} ${pr.ref}` : 'common reply', text: r.text };
+        return { label: pr ? docCite(v, d, pr.ref) : 'common reply', text: r.text };
       });
       if (!reps.length) throw new Error('No replies yet');
       const text = await ask(app, consolidatePrompt(v, a, reps));
@@ -83,7 +83,7 @@ function contextFor(v, caseId, paras) {
     return [...pick.values()].slice(0, 40).map((r, i) => {
       const key = 'k' + (i + 1);
       let label = r.type;
-      if (r.type === 'My reply') { const rr = v.get('replies', r.ref); const pr = rr?.paraId && v.get('paragraphs', rr.paraId); const d = pr && docs[pr.docId]; label = pr ? `your reply to ${d?.short || d?.title} ${pr.ref}` : 'your common reply'; }
+      if (r.type === 'My reply') { const rr = v.get('replies', r.ref); const pr = rr?.paraId && v.get('paragraphs', rr.paraId); const d = pr && docs[pr.docId]; label = pr ? `your reply to ${docCite(v, d, pr.ref)}` : 'your common reply'; }
       if (r.type === 'Event') label = `timeline ${formatDate(r.date)}${r.verified ? ' ✓ verified' : ''}`;
       if (r.type === 'Paragraph') label = `your filing: ${r.title}`;
       if (r.type === 'Consolidated response') label = 'your consolidated response';
@@ -101,7 +101,7 @@ async function suggest(app, p, at) {
   const als = Object.fromEntries(allegationsOf(v, caseId).map(a => [a.id, a]));
   let n = 0;
   for (let i = 0; i < paras.length; i += 6) {
-    const chunk = paras.slice(i, i + 6).map(x => { const d = v.get('documents', x.docId); return { id: x.id, text: x.translation || x.text, docLabel: d?.short || d?.title, ref: x.ref, allegationIds: x.allegationIds, allegation: (x.allegationIds || []).map(a => als[a]?.title).filter(Boolean).join('; ') }; });
+    const chunk = paras.slice(i, i + 6).map(x => { const d = v.get('documents', x.docId); return { id: x.id, text: x.translation || x.text, docLabel: docCite(v, d), ref: paraWord(x.ref), allegationIds: x.allegationIds, allegation: (x.allegationIds || []).map(a => als[a]?.title).filter(Boolean).join('; ') }; });
     const ctx = await contextFor(v, caseId, chunk);
     const out = await ask(app, suggestPrompt(v, caseId, chunk, ctx), { json: true });
     const byKey = Object.fromEntries(ctx.map(c => [c.key, c]));
@@ -120,7 +120,7 @@ export function storyData(v, caseId) {
   const filings = docsOf(v, caseId).map(d => ({ date: formatDate(d.date), title: d.title, filedBy: d.filedBy, summary: d.summary || '' }));
   const hearings = v.list('hearings', h => h.caseId === caseId).map(h => ({ date: formatDate(h.date), outcome: h.outcome, next: formatDate(h.nextDate) }));
   const openVer = v.list('verifications', x => x.caseId === caseId && x.status !== 'resolved').map(x => x.title);
-  const unanswered = docsOf(v, caseId).filter(needsReply).flatMap(d => parasOf(v, d.id).filter(p => paraStatus(v, p) === 'open').map(p => `${d.short || d.title} ${p.ref}`));
+  const unanswered = docsOf(v, caseId).filter(needsReply).flatMap(d => parasOf(v, d.id).filter(p => paraStatus(v, p) === 'open').map(p => docCite(v, d, p.ref)));
   return { case: v.get('cases', caseId)?.name, procs, filings, events, responses, hearings, openVerification: openVer, unanswered };
 }
 
@@ -186,16 +186,18 @@ async function processInbox(app, p) {
 // ---------- results written by the scheduled cloud task ----------
 export async function mergeRemoteResults(v) {
   const a = v.adapter; if (!a?.listFolder) return 0;
-  const seen = new Set((await v.setting('seenResults')) || []);
-  const files = (await a.listFolder('vault/results')).filter(f => f.name.endsWith('.json') && !seen.has(f.name)).sort((x, y) => x.name.localeCompare(y.name));
+  // "patch-*.json" files are tracked separately, so a copy of the app that didn't know patches yet can't have used them up
+  const seen = new Set((await v.setting('seenResults')) || []); const seenP = new Set((await v.setting('seenPatches')) || []);
+  const isP = f => f.name.startsWith('patch-');
+  const files = (await a.listFolder('vault/results')).filter(f => f.name.endsWith('.json') && !(isP(f) ? seenP : seen).has(f.name)).sort((x, y) => x.name.localeCompare(y.name));
   let n = 0;
   for (const f of files) {
     let text; try { text = await a.readText(f); } catch (e) { throw e; } // network/sign-in problem: retry on the next sync
     try { const r = JSON.parse(text); for (const one of (Array.isArray(r) ? r : [r])) { if (one.type === 'extract' && !one.caseId && v.list('cases').length > 1) await v.put('jobs', { type: 'choose_case', status: 'needs_you', result: one }); else n += await applyResult(v, one); } }
     catch (e) { console.warn('result', f.name, e); }
-    seen.add(f.name);
+    (isP(f) ? seenP : seen).add(f.name);
   }
-  await v.setting('seenResults', [...seen]);
+  await v.setting('seenResults', [...seen]); await v.setting('seenPatches', [...seenP]);
   return n;
 }
 export async function writeStateForClaude(v) {

@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useApp, useVault, Empty } from './core.jsx';
-import { docsOf, needsReply, parasOf, paraStatus } from '../domain.js';
+import { docsOf, needsReply, parasOf, paraStatus, docLabel } from '../domain.js';
 import { documentResponse, caseStory } from '../export/model.js';
 import { formatDate } from '../search/dates.js';
 import { requestJob, canRunNow } from '../claude/jobs.js';
@@ -41,7 +41,7 @@ export function Exports({ caseId }) {
     try {
       const model = what === 'doc' ? documentResponse(v, docId, { order, includeOriginal: orig && kind === 'pdf' }) : caseStory(v, caseId, len);
       const blob = await makeExport(app, model, kind);
-      const base = (what === 'doc' ? 'Response - ' + (v.get('documents', docId).short || v.get('documents', docId).title) : (len === 'snapshot' ? 'Snapshot - ' : 'Case brief - ') + c.name).replace(/[\\/:*?"<>|]+/g, '-');
+      const base = (what === 'doc' ? 'Reply - ' + docLabel(v, v.get('documents', docId)) : (len === 'snapshot' ? 'Snapshot - ' : 'Case brief - ') + c.name).replace(/[\\/:*?"<>|]+/g, '-');
       const where = await saveBlob(app, blob, `${base} (${new Date().toISOString().slice(0, 10)}).${kind}`);
       app.toast(MSG[where]);
     } catch (e) { app.toast('Export failed: ' + (e.message || e), 6000); console.error(e); }
@@ -54,7 +54,7 @@ export function Exports({ caseId }) {
     <div class="card pad">
       <h3 style="margin-top:0">1 · My response to one document</h3>
       {!docs.length ? <Empty>No documents filed against you yet.</Empty> : <>
-        <select value={docId} onChange={e => setDocId(e.currentTarget.value)}>{docs.map(x => <option value={x.id}>{formatDate(x.date)} — {x.title}</option>)}</select>
+        <select value={docId} onChange={e => setDocId(e.currentTarget.value)}>{docs.map(x => <option value={x.id}>{docLabel(v, x)} ({formatDate(x.date)})</option>)}</select>
         {stats && <div class="small mut" style="margin-top:4px">{stats.done} of {stats.t} paragraphs answered{stats.done < stats.t ? ' — unanswered ones are marked "Not answered yet"' : ''}.</div>}
         <div class="row small" style="margin:8px 0"><span class={'chip' + (order === 'paragraph' ? ' on' : '')} onClick={() => setOrder('paragraph')}>In paragraph order</span><span class={'chip' + (order === 'allegation' ? ' on' : '')} onClick={() => setOrder('allegation')}>Grouped by allegation</span>
           <label class="row" style="gap:4px"><input type="checkbox" checked={orig} onChange={() => setOrig(!orig)} /> attach original with page links (PDF)</label></div>

@@ -40,7 +40,7 @@ export function CaseShell({ caseId }) {
 
 export function ProceedingForm({ caseId, p, onDone }) {
   const app = useApp(); const v = app.v;
-  const [f, setF] = useState({ number: p?.number || '', title: p?.title || '', court: p?.court || '', status: p?.status || 'Pending', filedBy: p?.filedBy || 'opponent', notes: p?.notes || '' });
+  const [f, setF] = useState({ number: p?.number || '', title: p?.title || '', court: p?.court || '', status: p?.status || 'Pending', filedBy: p?.filedBy || 'opponent', myRole: p?.myRole || '', theirRole: p?.theirRole || '', notes: p?.notes || '' });
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const save = async () => { if (!f.number.trim() && !f.title.trim()) return app.toast('Add a case number or title'); if (p) await v.patch('proceedings', p.id, f); else await v.put('proceedings', { ...f, caseId }); onDone(); };
   return <div>
@@ -49,6 +49,10 @@ export function ProceedingForm({ caseId, p, onDone }) {
     <Field label="Court / forum"><input type="text" value={f.court} placeholder="Ld. 1st JM, City" onInput={set('court')} /></Field>
     <div class="grid2"><Field label="Status"><select value={f.status} onChange={set('status')}>{['Pending', 'Under appeal', 'Reserved', 'Disposed', 'Withdrawn', 'Dismissed', 'Closed'].map(s => <option>{s}</option>)}</select></Field>
       <Field label="Started by"><select value={f.filedBy} onChange={set('filedBy')}><option value="opponent">Other side</option><option value="me">Me</option><option value="court">Court / police</option></select></Field></div>
+    <div class="grid2"><Field label="You are the"><input type="text" value={f.myRole} list="roles" placeholder="Respondent No. 1" onInput={set('myRole')} /></Field>
+      <Field label="The other side is the"><input type="text" value={f.theirRole} list="roles" placeholder="Petitioner" onInput={set('theirRole')} /></Field></div>
+    <datalist id="roles">{['Petitioner', 'Respondent', 'Respondent No. 1', 'Appellant', 'Complainant', 'Accused', 'Opposite Party', 'Plaintiff', 'Defendant'].map(r => <option value={r} />)}</datalist>
+    <div class="small mut">Used when documents are named, e.g. "filed by the Petitioner in AC 123/2026".</div>
     <Field label="Notes"><textarea rows={2} value={f.notes} onInput={set('notes')} /></Field>
     <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Save</button>
       {p && <button class="btn g bad" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, 'Delete this proceeding? Documents stay in the case.', 'Delete', true)) { await v.del('proceedings', p.id); onDone(); } }}>Delete</button>}</div>

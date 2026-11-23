@@ -1,5 +1,6 @@
 import { createContext, h } from 'preact';
 import { useContext, useEffect, useRef, useState, useCallback } from 'preact/hooks';
+import { docName } from '../domain.js';
 
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -164,7 +165,7 @@ export function PdfPage({ fileId, page = 1, title }) {
 }
 export function openPdf(app, doc, page) {
   if (!doc?.fileId) { app.toast('No PDF attached to this document yet'); return; }
-  app.sheet.open(close => <Sheet title={(doc.short || doc.title) + ' — page ' + page} onClose={close}><PdfPage fileId={doc.fileId} page={page} title={doc.title} /></Sheet>);
+  app.sheet.open(close => <Sheet title={docName(doc) + ' — page ' + page} onClose={close}><PdfPage fileId={doc.fileId} page={page} title={doc.title} /></Sheet>);
 }
 
 export const fmtMoney = n => '₹' + Number(n || 0).toLocaleString('en-IN');

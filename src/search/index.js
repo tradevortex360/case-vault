@@ -26,7 +26,7 @@ export function buildItems(v, caseId) {
   const docs = Object.fromEntries(v.list('documents').map(d => [d.id, d]));
   const items = [];
   for (const e of v.list('events', inCase)) items.push({ id: 'ev:' + e.id, type: 'Event', ref: e.id, caseId: e.caseId, date: e.date, title: e.title, text: [e.title, e.desc].join(' '), verified: e.verified?.status === 'verified' });
-  for (const p of v.list('paragraphs')) { const d = docs[p.docId]; if (!d || !inCase(d)) continue; items.push({ id: 'pa:' + p.id, type: 'Paragraph', ref: p.id, caseId: d.caseId, date: d.date, title: `${d.short || d.title} · ${p.ref}`, text: [p.text, p.translation].join(' '), page: p.page, docId: d.id }); }
+  for (const p of v.list('paragraphs')) { const d = docs[p.docId]; if (!d || !inCase(d)) continue; items.push({ id: 'pa:' + p.id, type: 'Paragraph', ref: p.id, caseId: d.caseId, date: d.date, title: `${(d.short || d.title)}, ${p.ref.startsWith('¶') ? 'para ' + p.ref.slice(1) : p.ref}`, text: [p.text, p.translation].join(' '), page: p.page, docId: d.id }); }
   for (const r of v.list('replies', inCase)) items.push({ id: 're:' + r.id, type: r.status === 'suggested' ? 'Suggested reply' : 'My reply', ref: r.id, caseId: r.caseId, date: r.updatedAt ? new Date(r.updatedAt).toISOString().slice(0, 10) : null, title: 'Reply', text: r.text || '' });
   for (const c of v.list('consolidated', inCase)) items.push({ id: 'co:' + c.id, type: 'Consolidated response', ref: c.id, caseId: c.caseId, title: 'Consolidated response', text: c.text || '' });
   for (const x of v.list('evidence', inCase)) items.push({ id: 'ex:' + x.id, type: 'Evidence', ref: x.id, caseId: x.caseId, date: x.obtainedOn || x.date, title: x.title, text: [x.title, x.notes, x.originalLocation, x.text].join(' ') });

@@ -1,3 +1,4 @@
+import { COLLECTIONS } from '../store/ops.js';
 // Merge Claude "result files" into the vault. Every key is deterministic, so
 // merging the same result twice (or on two devices) produces identical ops.
 import { parseDate, sortKey } from '../search/dates.js';
@@ -79,6 +80,9 @@ export function resultToChanges(v, r) {
     case 'polish': return v.get('replies', r.replyId) ? [{ coll: 'replies', key: r.replyId, kind: 'patch', data: { text: r.text, toPolish: false, updatedAt: r.at || Date.now() } }] : [];
     case 'consolidate': return [{ coll: 'consolidated', key: r.allegationId, kind: 'put', data: { id: r.allegationId, caseId: r.caseId, text: r.text, at: r.at || Date.now(), from: r.from || [] } }];
     case 'story': return [{ coll: 'stories', key: r.caseId + '-' + r.length, kind: 'put', data: { id: r.caseId + '-' + r.length, caseId: r.caseId, length: r.length, text: r.text, at: r.at || Date.now() } }];
+    case 'patch': // field updates to existing records, e.g. renaming documents: { type:'patch', patches:[{ coll, id, data }] }
+      // x.if = { field: expected } applies the patch only if the record still has that value (never overwrites your later edits)
+      return (r.patches || []).filter(x => COLLECTIONS.includes(x.coll) && v.get(x.coll, x.id) && x.data && typeof x.data === 'object' && Object.entries(x.if || {}).every(([k, val]) => v.get(x.coll, x.id)[k] === val)).map(x => ({ coll: x.coll, key: x.id, kind: 'patch', data: x.data }));
     case 'summary': return v.get('documents', r.docId) ? [{ coll: 'documents', key: r.docId, kind: 'patch', data: { summary: r.text } }] : [];
     case 'import': { // full records with fixed ids (migration / restore from file); never overwrites existing records
       const ch = [];

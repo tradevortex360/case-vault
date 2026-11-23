@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useMemo } from 'preact/hooks';
 import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, PointLines, TextBox } from './core.jsx';
-import { allegationsOf, allegationProgress, repliesFor, paraStatus, datesIn, eventsOf, nextAllegationNo, addDays } from '../domain.js';
+import { allegationsOf, allegationProgress, repliesFor, paraStatus, datesIn, eventsOf, nextAllegationNo, addDays, docCite } from '../domain.js';
 import { ReplyComposer, ReplyView } from './replies.jsx';
 import { requestJob } from '../claude/jobs.js';
 import { formatDate, parseDate, sortKey } from '../search/dates.js';
@@ -106,7 +106,7 @@ export function AllegationPage({ caseId, alId }) {
     {paras.map(({ p, d }) => {
       const own = repliesFor(v, { paraId: p.id }); const st = paraStatus(v, p);
       return <div class="card pad" key={p.id} id={'ap-' + p.id}>
-        <div class="between"><b class="small">{d.short || d.title} · {p.ref}</b>
+        <div class="between"><b class="small">{docCite(v, d, p.ref)}</b>
           <span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}
             <span class={'tag ' + (st === 'answered' || st === 'common' ? 'ok' : st === 'suggested' ? 'warn' : 'bad')}>{{ answered: 'answered', common: 'common reply', suggested: 'suggestion', open: 'not answered' }[st]}</span></span></div>
         <div class="quote">{p.text}</div>

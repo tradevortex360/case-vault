@@ -10,6 +10,32 @@ export const FILED_BY = {
 };
 export const needsReply = d => d?.filedBy === 'opponent';
 
+// ---------- how documents are named (court style) ----------
+// name:  "Petition u/s 31 PWDVA"            (the document's own name, no case number)
+// label: "Petition u/s 31 PWDVA — AC 123/2026"
+// cite:  "Petition u/s 31 PWDVA in AC 123/2026, para 7"
+// long:  "the Petition u/s 31 PWDVA dated 08.07.2026 filed by the Petitioner in AC 123/2026 before the Ld. ..."
+export const docName = d => (d?.short || d?.title || 'Document').trim();
+export const procOfDoc = (v, d) => (d?.proceedingId && v.get('proceedings', d.proceedingId)) || null;
+export function paraWord(ref = '') {
+  const r = String(ref).trim();
+  const m = r.match(/^¶\s*(.+)$/); if (!m) return r;
+  return (/[–\-,&]/.test(m[1]) ? 'paras ' : 'para ') + m[1];
+}
+export function docLabel(v, d) { const p = procOfDoc(v, d); return docName(d) + (p?.number ? ' — ' + p.number : ''); }
+export function docCite(v, d, ref) { const p = procOfDoc(v, d); return docName(d) + (p?.number ? ' in ' + p.number : '') + (ref ? ', ' + paraWord(ref) : ''); }
+export function partyRoles(v, d) {
+  const p = procOfDoc(v, d); const c = d && v.get('cases', d.caseId);
+  const me = p?.myRole || c?.myRole || 'Respondent'; const them = p?.theirRole || c?.theirRole || 'Petitioner';
+  return { me, them };
+}
+export function filerOf(v, d) { const r = partyRoles(v, d); return d?.filedBy === 'me' ? r.me : d?.filedBy === 'opponent' ? r.them : d?.filedBy === 'court' ? 'the Court' : d?.filedBy === 'police' ? 'the police' : ''; }
+export function docLong(v, d, fmtDate) {
+  const p = procOfDoc(v, d); const who = filerOf(v, d);
+  const dated = d?.date && /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? ' dated ' + fmtDate(d.date) : d?.date ? ' of ' + d.date : '';
+  return `the ${docName(d)}${dated}${who && !/^the /.test(who) ? ' filed by the ' + who : ''}${p?.number ? ' in ' + p.number : ''}${p?.court ? ' before the ' + p.court : ''}`;
+}
+
 export const docsOf = (v, caseId) => v.list('documents', d => d.caseId === caseId).sort((a, b) => sortKey(a.date).localeCompare(sortKey(b.date)));
 export const parasOf = (v, docId) => v.list('paragraphs', p => p.docId === docId).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 export const allegationsOf = (v, caseId) => v.list('allegations', a => a.caseId === caseId).sort((a, b) => (a.n ?? 0) - (b.n ?? 0));
@@ -62,3 +88,14 @@ export function calendarLink(title, dateISO, details = '') {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${d2}&details=${encodeURIComponent(details)}`;
 }
 export function addDays(iso, n) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+// "Dated 08.07.2026, filed by the Petitioner in AC 123/2026 before the Ld. ..." (for a document's own page)
+export function docWhere(v, d, fmtDate) {
+  const p = procOfDoc(v, d); const who = filerOf(v, d); const bits = [];
+  if (d?.date) bits.push(/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? 'Dated ' + fmtDate(d.date) : d.date);
+  let f = '';
+  if (who) f += (/^the /.test(who) ? 'from ' : 'filed by the ') + who;
+  if (p?.number) f += (f ? ' in ' : 'In ') + p.number;
+  if (p?.court) f += ' before the ' + p.court;
+  if (f) bits.push(bits.length ? f : f[0].toUpperCase() + f.slice(1));
+  return bits.join(', ');
+}

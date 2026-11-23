@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox } from './core.jsx';
-import { eventsOf, proceedingsOf } from '../domain.js';
+import { eventsOf, proceedingsOf, docCite, paraWord } from '../domain.js';
 import { formatDate, parseDate } from '../search/dates.js';
 import { EvidencePicker } from './trackers.jsx';
 
@@ -91,7 +91,7 @@ export function EventPage({ caseId, eventId }) {
     <h3>Where this is recorded</h3>
     {!(e.sources || []).length && <div class="small mut">No document source{e.manual ? ' — you added this yourself' : ''}.</div>}
     {(e.sources || []).map((s, i) => { const d = docs[s.docId]; return <div class="card pad small" key={i}>
-      <b>{d ? (d.short || d.title) : s.label || 'Source'}</b>{s.ref ? ' · ' + s.ref : ''}{s.page ? ' · page ' + s.page : ''}{s.claim ? <div class="mut">{s.claim}</div> : null}
+      <b>{d ? docCite(v, d, s.ref) : (s.label || 'Source') + (s.ref ? ', ' + paraWord(s.ref) : '')}</b>{s.page ? ' · page ' + s.page : ''}{s.claim ? <div class="mut">{s.claim}</div> : null}
       <div class="row" style="margin-top:4px">{d?.fileId && s.page && <button class="lnk" onClick={() => openPdf(app, d, s.page)}>Open page {s.page}</button>}{d && <button class="lnk" onClick={() => app.nav('case', caseId, 'doc', d.id)}>Open document</button>}</div></div>; })}
     <div class="between"><h3>Supporting evidence</h3><button class="btn g s" onClick={() => app.sheet.open(close => <Sheet title="Attach evidence" onClose={close}><EvidencePicker caseId={caseId} selected={e.evidenceIds || []} onDone={async ids => { await v.patch('events', e.id, { evidenceIds: ids }); close(); }} /></Sheet>)}>Attach</button></div>
     {!evid.length && <div class="small mut">Optional. Attach a receipt, message, photo, recording or police copy that proves this.</div>}

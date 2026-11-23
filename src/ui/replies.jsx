@@ -2,6 +2,7 @@ import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useApp, useVault, PointLines, TextBox, confirmBox, Sheet } from './core.jsx';
 import { requestJob, canRunNow } from '../claude/jobs.js';
+import { docCite } from '../domain.js';
 
 // Composer for a para-wise reply (paraId) or a common reply (paraId = null)
 export function ReplyComposer({ caseId, allegationId, paraId, onDone, initial = '' }) {
@@ -44,7 +45,7 @@ export function ReplyView({ r, compact }) {
     {edit ? <div><TextBox value={txt} rows={5} onInput={setTxt} /><div class="row" style="margin-top:4px"><button class="btn s" onClick={async () => { await setText(txt); if (sug) await v.patch('replies', r.id, { status: 'accepted' }); setEdit(false); }}>{sug ? 'Save & accept' : 'Save'}</button><button class="lnk" onClick={() => setEdit(false)}>Cancel</button></div></div>
       : <PointLines text={r.text} onChange={setText} />}
     {!compact && r.orig && r.orig !== r.text && <details class="small mut" style="margin-top:4px"><summary>You said</summary><div style="white-space:pre-wrap">{r.orig}</div></details>}
-    {sug && sources.length > 0 && <div class="small" style="margin-top:6px"><b>Based on:</b>{sources.map((s, i) => <div key={i} class="src">• {s.label}{s.docId && docs(s.docId) ? ` (${docs(s.docId).short || docs(s.docId).title}${s.ref ? ' ' + s.ref : ''})` : ''}</div>)}</div>}
+    {sug && sources.length > 0 && <div class="small" style="margin-top:6px"><b>Based on:</b>{sources.map((s, i) => <div key={i} class="src">• {s.label}{s.docId && docs(s.docId) ? ` (${docCite(app.v, docs(s.docId), s.ref)})` : ''}</div>)}</div>}
     {sug && /needs your input/i.test(r.text) && <div class="tiny" style="color:var(--warn)">Parts marked “Needs your input” are things you have never answered before — fill them in.</div>}
     <div class="row" style="margin-top:6px">
       {sug && <button class="btn s ok" onClick={() => v.patch('replies', r.id, { status: 'accepted', acceptedAt: Date.now() })}>✓ Accept</button>}

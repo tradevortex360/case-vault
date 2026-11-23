@@ -14,7 +14,7 @@ export function polishPrompt(v, r) {
   return `You turn a litigant's dictated note into a polished reply for an Indian court file.
 ${caseContext(v, r.caseId)}
 ${a ? `Allegation: ${a.title}${a.brief ? ' — ' + a.brief : ''}` : ''}
-${p ? `Paragraph being answered (${d?.short || d?.title || ''} ${p.ref}): "${p.text}"` : r.paraId ? '' : 'This is a COMMON reply covering every paragraph of the allegation.'}
+${p ? `Paragraph being answered (${d?.short || d?.title || ''}, ${p.ref}): "${p.text}"` : r.paraId ? '' : 'This is a COMMON reply covering every paragraph of the allegation.'}
 The note may be Bengali, Hindi, Banglish/Hinglish or English, informal, with speech-recognition errors.
 ${STYLE}
 Output only the reply text.
@@ -44,7 +44,7 @@ ${caseContext(v, a.caseId)}
 ALLEGATION: ${a.title}${a.brief ? ' — ' + a.brief : ''}
 HIS REPLIES (tagged with the paragraph they answer):
 ${replies.map(r => `- [${r.label}] ${r.text}`).join('\n')}
-Format exactly: Line 1: one sentence stating his core position. Then at most 3 numbered points, each ONE sentence under 25 words, with short references in brackets e.g. (s.31 ¶5; s.25 ¶4). Total under 90 words. Formal court English, third person. Use ONLY what is in his replies. Only if two replies genuinely contradict, add a final line "Check: …".
+Format exactly: Line 1: one sentence stating his core position. Then at most 3 numbered points, each ONE sentence under 25 words, with references in brackets naming the document and paragraph the way an advocate would, e.g. (Petition u/s 31, para 5; Application u/s 25, para 4). Total under 90 words. Formal court English, third person. Use ONLY what is in his replies. Only if two replies genuinely contradict, add a final line "Check: …".
 Output only the response.`;
 }
 
@@ -61,7 +61,7 @@ export function askSystem(v, caseId) {
   return `You are Claude, helping an Indian litigant understand his own case. Answer from his case vault using the tools; cite what you rely on as [doc ¶ref], [event dd.mm.yyyy] or [reply …]. Be direct and practical: where he stands, what is against him, what he may be missing, what to ask his advocate. Indian law (PWDVA 2005, BNS, BNSS, BSA, CrPC/IPC case law, HMA, Companies Act) — explain plainly, flag that your legal knowledge has a cutoff and that recent judgments or amendments should be checked in a normal Claude chat with web search and with his advocate. You are not his lawyer; do not tell him to mislead the court. ${caseContext(v, caseId)}`;
 }
 
-export const EXTRACT_SCHEMA = `{"document":{"title":"","short":"","date":"dd.mm.yyyy","filedBy":"opponent|me|court|police|other","language":"en|bn|mixed","summary":"2-3 sentences","proceeding":{"number":"","title":"","court":""}},
+export const EXTRACT_SCHEMA = `{"document":{"title":"one-line description","short":"the document's name as the court would cite it, e.g. Petition u/s 31 PWDVA, Written Statement, Memorandum of Appeal","date":"dd.mm.yyyy","filedBy":"opponent|me|court|police|other","language":"en|bn|mixed","summary":"2-3 sentences","proceeding":{"number":"","title":"","court":""}},
 "paragraphs":[{"ref":"¶1 | Ground I | Prayer A | Q16","page":1,"text":"exact text as printed (Bengali stays Bengali)","translation":"English, only if not English"}],
 "events":[{"date":"dd.mm.yyyy or Month yyyy","title":"short","desc":"","account":"theirs|mine|record","kind":"incident|filing|order|police|hearing","page":1,"ref":"¶5"}],
 "allegations":[{"existingId":"id of an existing allegation if it is the same allegation, else omit","title":"short neutral title","brief":"one line","group":"","paraRefs":["¶5","Ground III"]}],

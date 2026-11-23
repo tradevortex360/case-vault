@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, TextBox } from './core.jsx';
-import { FILED_BY, needsReply, docsOf, parasOf, proceedingsOf, paraStatus, allegationsOf, repliesFor } from '../domain.js';
+import { FILED_BY, needsReply, docsOf, parasOf, proceedingsOf, paraStatus, allegationsOf, repliesFor , docName, docLabel, docWhere, filerOf, paraWord } from '../domain.js';
 import { formatDate, parseDate } from '../search/dates.js';
 import { ReplyComposer, ReplyView } from './replies.jsx';
 import { requestJob } from '../claude/jobs.js';
@@ -13,7 +13,7 @@ export function DocForm({ caseId, d, onDone }) {
   const [file, setFile] = useState(null); const [text, setText] = useState(''); const [err, setErr] = useState('');
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const save = async () => {
-    if (!f.title.trim()) return setErr('Give the document a title');
+    if (!f.short.trim() && !f.title.trim()) return setErr('Give the document its name, e.g. Petition u/s 31 PWDVA');
     const dt = f.date.trim() ? parseDate(f.date) : null; if (f.date.trim() && !dt) return setErr('Date not understood');
     const data = { ...f, caseId, date: dt ? (dt.precision === 'day' ? dt.from : f.date.trim()) : null };
     let id = d?.id;
@@ -28,8 +28,9 @@ export function DocForm({ caseId, d, onDone }) {
     onDone(id);
   };
   return <div>
-    <Field label="Title"><input type="text" value={f.title} placeholder="e.g. Section 31 PWDVA Petition" onInput={set('title')} /></Field>
-    <div class="grid2"><Field label="Short name"><input type="text" value={f.short} placeholder="s.31 Petition" onInput={set('short')} /></Field>
+    <Field label="Document name, as the court would call it"><input type="text" value={f.short} placeholder="e.g. Petition u/s 31 PWDVA" onInput={set('short')} /></Field>
+    <Field label="Description (optional)"><input type="text" value={f.title} placeholder="e.g. Petition alleging breach of the interim order" onInput={set('title')} /></Field>
+    <div class="grid2">
       <Field label="Date filed / issued"><input type="text" value={f.date} placeholder="08.07.2026" onInput={set('date')} /></Field></div>
     <div class="grid2"><Field label="Whose document"><select value={f.filedBy} onChange={set('filedBy')}>{Object.entries(FILED_BY).map(([k, x]) => <option value={k}>{x.label}</option>)}</select></Field>
       <Field label="Proceeding"><select value={f.proceedingId} onChange={set('proceedingId')}><option value="">— choose —</option>{proceedingsOf(v, caseId).map(p => <option value={p.id}>{p.number} {p.title}</option>)}</select></Field></div>
@@ -59,7 +60,7 @@ export function Documents({ caseId }) {
       const fb = FILED_BY[d.filedBy] || FILED_BY.other;
       return <div class="item" key={d.id} onClick={() => app.nav('case', caseId, 'doc', d.id)}>
         <div class="d">{formatDate(d.date)}</div>
-        <div class="grow"><b>{d.title}</b>
+        <div class="grow"><b>{docLabel(v, d)}</b>{filerOf(v, d) && <div class="small mut">Filed by {/^the /.test(filerOf(v, d)) ? '' : 'the '}{filerOf(v, d)}</div>}
           <div><span class={'tag ' + fb.tag}>{fb.label}</span>{procs[d.proceedingId] && <span class="tag">{procs[d.proceedingId].number}</span>}{d.language === 'bn' && <span class="tag">Bengali</span>}
             {needsReply(d) && ps.length > 0 && <span class={'tag ' + (done === ps.length ? 'ok' : 'warn')}>{done}/{ps.length} answered</span>}{sug > 0 && <span class="tag warn">{sug} suggestions</span>}
             {!ps.length && <span class="tag">not read yet</span>}</div></div></div>;
@@ -77,7 +78,7 @@ function ParaText({ p, d }) {
 
 function CorrectText({ p, onDone }) {
   const app = useApp(); const [t, setT] = useState(p.text); const [tr, setTr] = useState(p.translation || '');
-  return <Sheet title={'Correct text — ' + p.ref} onClose={onDone}>
+  return <Sheet title={'Correct text — ' + paraWord(p.ref)} onClose={onDone}>
     <p class="small mut">Fix words the scan reading got wrong. Search, quotes and exports will use your correction; the original reading is kept.</p>
     <Field label="Text as in the document"><textarea rows={8} value={t} onInput={e => setT(e.currentTarget.value)} /></Field>
     {(p.translation || p.lang === 'bn') && <Field label="English translation"><textarea rows={5} value={tr} onInput={e => setTr(e.currentTarget.value)} /></Field>}
@@ -94,7 +95,7 @@ function AssignAllegations({ p, caseId, onDone }) {
     for (const a of all) { const has = (a.paraIds || []).includes(p.id), want = sel.has(a.id); if (has !== want) ch.push({ coll: 'allegations', key: a.id, kind: 'patch', data: { paraIds: want ? [...(a.paraIds || []), p.id] : (a.paraIds || []).filter(x => x !== p.id) } }); }
     await v.commit(ch); onDone();
   };
-  return <Sheet title={'Allegations in ' + p.ref} onClose={onDone}>
+  return <Sheet title={'Allegations in ' + paraWord(p.ref)} onClose={onDone}>
     {all.map(a => <label class="row" style="padding:6px 0" key={a.id}><input type="checkbox" checked={sel.has(a.id)} onChange={() => { const s = new Set(sel); s.has(a.id) ? s.delete(a.id) : s.add(a.id); setSel(s); }} /> <span>A{a.n} · {a.title}</span></label>)}
     <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Save</button></div>
   </Sheet>;
@@ -111,7 +112,9 @@ export function DocPage({ caseId, docId }) {
   return <main>
     <div class="card pad">
       <div class="mut small">{formatDate(d.date)} · <span class={'tag ' + fb.tag}>{fb.label}</span></div>
-      <h2 style="margin:4px 0">{d.title}</h2>
+      <h2 style="margin:4px 0">{docName(d)}</h2>
+      <div class="small mut">{docWhere(v, d, formatDate)}</div>
+      {d.title && d.title !== docName(d) && <div class="small" style="margin-top:4px">{d.title}</div>}
       {d.summary && <p class="small">{d.summary}</p>}
       <div class="row">
         {d.fileId && <button class="btn s" onClick={() => openPdf(app, d, 1)}>Open PDF</button>}
@@ -129,7 +132,7 @@ export function DocPage({ caseId, docId }) {
       const own = repliesFor(v, { paraId: p.id });
       const commons = (p.allegationIds || []).flatMap(aid => v.list('replies', r => r.allegationId === aid && !r.paraId && r.status === 'accepted'));
       return <div class="card pad" key={p.id} id={'p-' + p.id}>
-        <div class="between"><b>{p.ref}</b><span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}{p.page && !d.fileId && <span class="tiny mut">page {p.page}</span>}
+        <div class="between"><b>{paraWord(p.ref)}</b><span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}{p.page && !d.fileId && <span class="tiny mut">page {p.page}</span>}
           <button class="lnk" onClick={() => app.sheet.open(close => <CorrectText p={p} onDone={close} />)}>Correct text</button></span></div>
         <ParaText p={p} d={d} />
         <div style="margin-top:6px">{(p.allegationIds || []).map(aid => als[aid] && <span class="tag" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'al', aid)}>A{als[aid].n} · {als[aid].title}</span>)}

@@ -1,5 +1,5 @@
 // Builds the content of an export as simple blocks, shared by the PDF and Word writers.
-import { parasOf, allegationsOf, needsReply, paraStatus, eventsOf, proceedingsOf, docsOf, upcoming } from '../domain.js';
+import { parasOf, allegationsOf, needsReply, paraStatus, eventsOf, proceedingsOf, docsOf, upcoming, docName, docLabel, docLong, paraWord, partyRoles } from '../domain.js';
 import { formatDate } from '../search/dates.js';
 
 const today = () => formatDate(new Date().toISOString().slice(0, 10));
@@ -12,9 +12,10 @@ export function documentResponse(v, docId, { order = 'paragraph', includeOrigina
   const ps = parasOf(v, d.id); const als = Object.fromEntries(allegationsOf(v, d.caseId).map(a => [a.id, a]));
   const docAls = [...new Set(ps.flatMap(p => p.allegationIds || []))].map(id => als[id]).filter(Boolean).sort((a, b) => a.n - b.n);
   const B = []; const clar = [];
-  B.push({ t: 'title', text: 'Para-wise response' });
-  B.push({ t: 'sub', text: `${d.title}${d.date ? ' dated ' + formatDate(d.date) : ''}` });
-  B.push({ t: 'small', text: [c.name, proc && `${proc.number}${proc.court ? ', ' + proc.court : ''}`, c.myRole && 'Prepared by ' + c.myRole].filter(Boolean).join(' · ') });
+  const long = docLong(v, d, formatDate);
+  B.push({ t: 'title', text: needsReply(d) ? 'Para-wise reply' : 'Notes on document' });
+  B.push({ t: 'sub', text: (needsReply(d) ? 'Reply to ' : 'On ') + long });
+  B.push({ t: 'small', text: [proc?.title, 'Prepared by ' + partyRoles(v, d).me].filter(Boolean).join('. ') });
   B.push({ t: 'note', text: `Prepared on ${today()} from my own instructions with the help of an AI drafting tool. Working notes for my advocate — not a pleading. Facts and dates are as stated by me and should be verified before use.${includeOriginal && d.fileId ? ' Page references link to the original document attached at the end.' : ''}` });
   if (docAls.length) {
     B.push({ t: 'h2', text: 'Summary of my response' });
@@ -28,12 +29,12 @@ export function documentResponse(v, docId, { order = 'paragraph', includeOrigina
   B.push({ t: 'h2', text: order === 'allegation' ? 'Paragraph-wise, grouped by allegation' : 'Paragraph-wise response' });
   const paraBlock = p => {
     const link = includeOriginal && d.fileId && p.page ? { anx: 'A', page: p.page } : null;
-    B.push({ t: 'h3', text: `${p.ref}${p.page ? '' : ''}`, link, linkText: p.page ? `page ${p.page}` : null });
+    B.push({ t: 'h3', text: paraWord(p.ref).replace(/^p/, 'P'), link, linkText: p.page ? `page ${p.page}` : null });
     B.push({ t: 'quote', text: p.text, lang: p.lang });
     if (p.translation) B.push({ t: 'quote', text: 'English translation: ' + p.translation });
     if (!needsReply(d)) return;
     const own = v.list('replies', r => r.paraId === p.id && r.status === 'accepted');
-    own.forEach(r => { B.push({ t: 'reply', label: 'MY REPLY', lines: lines(r.text) }); unclearIn(r.text).forEach(u => clar.push({ where: p.ref, text: 'Unclear: ' + u })); });
+    own.forEach(r => { B.push({ t: 'reply', label: 'MY REPLY', lines: lines(r.text) }); unclearIn(r.text).forEach(u => clar.push({ where: paraWord(p.ref), text: 'Unclear: ' + u })); });
     if (!own.length) {
       const commons = (p.allegationIds || []).flatMap(aid => v.list('replies', r => r.allegationId === aid && !r.paraId && r.status === 'accepted').map(r => ({ r, a: als[aid] })));
       if (commons.length) commons.forEach(({ r, a }) => B.push({ t: 'reply', label: `COVERED BY MY COMMON REPLY ON A${a?.n} · ${a?.title}`, lines: lines(r.text) }));
@@ -48,8 +49,8 @@ export function documentResponse(v, docId, { order = 'paragraph', includeOrigina
   const ver = v.list('verifications', x => x.caseId === d.caseId && x.status !== 'resolved' && (x.variants || []).some(vr => (vr.sources || []).some(s => s.docId === d.id)));
   ver.forEach(x => clar.push({ where: 'For verification', text: `${x.title}: ${(x.variants || []).map(vr => vr.value).join(' vs ')}` }));
   if (clar.length) { B.push({ t: 'h2', text: 'Points to verify or clarify' }); clar.forEach(c2 => B.push({ t: 'bullet', text: `${c2.where} — ${c2.text}` })); }
-  const annexures = includeOriginal && d.fileId ? [{ label: 'A', title: d.title, fileId: d.fileId }] : [];
-  return { title: `Response — ${d.short || d.title}`, footer: `${c.name} · ${d.short || d.title} · Privileged & confidential`, blocks: B, annexures };
+  const annexures = includeOriginal && d.fileId ? [{ label: 'A', title: docLabel(v, d), fileId: d.fileId }] : [];
+  return { title: `Reply — ${docLabel(v, d)}`, footer: `${docLabel(v, d)} — privileged & confidential`, blocks: B, annexures };
 }
 
 // Export 2: the whole case story
