@@ -54,25 +54,35 @@ export function ProceedingForm({ caseId, p, onDone }) {
 }
 
 function FactsCard({ c }) {
-  const app = useApp(); const v = app.v;
-  const items = c.facts || [];
+  const app = useApp();
+  const items = (c.facts || []).filter(it => it.label || it.value);
+  const [all, setAll] = useState(false); const [copied, setCopied] = useState(-1);
   const edit = () => app.sheet.open(close => <FactsEditor c={c} onDone={close} />);
+  const copy = (it, i) => navigator.clipboard?.writeText(it.value).then(() => { setCopied(i); setTimeout(() => setCopied(-1), 1500); }, () => app.toast('Copy not allowed here — long-press the text'));
+  const shown = all ? items : items.slice(0, 6);
   return <div class="card pad">
-    <div class="between"><h3 style="margin:0">Quick facts</h3><button class="lnk" onClick={edit}>Edit</button></div>
-    {!items.length && <div class="small mut">Case numbers, key dates, addresses, amounts — one tap to copy when a lawyer calls.</div>}
-    <table class="t" style="margin-top:4px"><tbody>{items.map((it, i) => <tr key={i}><td class="mut" style="width:38%">{it.label}</td><td>{it.value}</td>
-      <td style="width:1%"><button class="lnk" onClick={() => { navigator.clipboard?.writeText(it.value).then(() => app.toast('Copied'), () => app.toast('Copy not allowed here — long-press the text')); }}>Copy</button></td></tr>)}</tbody></table>
+    <div class="between"><h3 style="margin:0">Quick facts</h3><button class="lnk" onClick={edit}>{items.length ? 'Edit' : '+ Add'}</button></div>
+    {!items.length && <div class="small mut" style="margin-top:6px">Case numbers, key dates, addresses, amounts — one tap to copy when a lawyer calls.</div>}
+    <div class="facts">{shown.map((it, i) => <button type="button" class="fact" key={i} onClick={() => copy(it, i)} aria-label={'Copy ' + it.label}>
+      <span class="fl">{it.label}</span>
+      <span class="fv">{it.value}</span>
+      <span class={'fc' + (copied === i ? ' on' : '')}>{copied === i ? '✓ Copied' : 'Copy'}</span>
+    </button>)}</div>
+    {items.length > 6 && <button class="lnk small" style="margin-top:8px" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length}`}</button>}
   </div>;
 }
 function FactsEditor({ c, onDone }) {
   const app = useApp();
   const [rows, setRows] = useState((c.facts || []).length ? c.facts : [{ label: '', value: '' }]);
   const upd = (i, k, val) => setRows(rows.map((r, j) => j === i ? { ...r, [k]: val } : r));
+  const move = (i, d) => { const r = [...rows]; const [x] = r.splice(i, 1); r.splice(i + d, 0, x); setRows(r); };
   return <Sheet title="Quick facts" onClose={onDone}>
-    {rows.map((r, i) => <div class="row" key={i} style="margin-bottom:6px"><input type="text" style="flex:1" placeholder="Label" value={r.label} onInput={e => upd(i, 'label', e.currentTarget.value)} />
-      <input type="text" style="flex:2" placeholder="Value" value={r.value} onInput={e => upd(i, 'value', e.currentTarget.value)} />
-      <button class="x" aria-label="Remove" onClick={() => setRows(rows.filter((_, j) => j !== i))}>×</button></div>)}
-    <div class="row"><button class="btn g s" onClick={() => setRows([...rows, { label: '', value: '' }])}>+ Add row</button>
+    {rows.map((r, i) => <div class="card pad" key={i} style="margin-bottom:8px">
+      <div class="between"><input type="text" style="font-weight:600" placeholder="Label (e.g. DV case)" value={r.label} onInput={e => upd(i, 'label', e.currentTarget.value)} />
+        <span class="row" style="flex:none;gap:2px;margin-left:6px">{i > 0 && <button class="btn g s" aria-label="Move up" onClick={() => move(i, -1)}>↑</button>}{i < rows.length - 1 && <button class="btn g s" aria-label="Move down" onClick={() => move(i, 1)}>↓</button>}<button class="x" aria-label="Remove" onClick={() => setRows(rows.filter((_, j) => j !== i))}>×</button></span></div>
+      <textarea rows={2} style="margin-top:6px" placeholder="Value (e.g. AC 123/2026, Ld. 1st JM)" value={r.value} onInput={e => upd(i, 'value', e.currentTarget.value)} />
+    </div>)}
+    <div class="row"><button class="btn g s" onClick={() => setRows([...rows, { label: '', value: '' }])}>+ Add fact</button>
       <button class="btn" onClick={async () => { await app.v.patch('cases', c.id, { facts: rows.filter(r => r.label || r.value) }); onDone(); }}>Save</button></div>
   </Sheet>;
 }
