@@ -118,31 +118,34 @@ function Overview({ caseId }) {
   const proc = nx && procs.find(p => p.id === nx.h.proceedingId);
   const purpose = nx && ((nx.date === nx.h.nextDate ? nx.h.nextPurpose : nx.h.purpose) || 'Hearing');
   const attn = [
-    [ver.length, ver.length === 1 ? 'date or fact differs between documents' : 'dates or facts differ between documents', 'Review', 'verify'],
-    [open.length, open.length === 1 ? 'allegation still needs your reply' : 'allegations still need your reply', 'Reply', 'allegations'],
-    [sugg.length, sugg.length === 1 ? 'suggested reply from Claude to check' : 'suggested replies from Claude to check', 'Check', 'allegations'],
-    [dirs.length, dirs.length === 1 ? 'court direction not marked complied' : 'court directions not marked complied', 'Open', 'hearings'],
-    [polish.length, polish.length === 1 ? 'reply typed offline waits for polishing' : 'replies typed offline wait for polishing', 'Open', 'allegations'],
+    [ver.length, 'Facts to verify', 'dates or facts that differ between documents', 'verify'],
+    [open.length, 'Allegations to answer', 'still need your reply', 'allegations'],
+    [sugg.length, 'Suggestions to check', 'replies drafted by Claude', 'allegations'],
+    [dirs.length, 'Directions pending', 'court directions not marked complied', 'hearings'],
+    [polish.length, 'Waiting to polish', 'replies typed offline', 'allegations'],
   ].filter(x => x[0] > 0);
   return <main>
     {docCount === 0 && <div class="box acc small"><b>Getting started:</b> put this case's PDFs in the <b>inbox</b> folder of your Google Drive "Legal" folder and tap <b>Update vault</b>. You can also add a document by hand under Documents.</div>}
+    <div class="status">
     {nx ? <section class="next" aria-label="Next date in court">
       <span class="k">Next date in court</span>
-      <div><div class="date">{longDate(nx.date)}</div><div class="when">{weekday(nx.date)}, {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}</div></div>
-      <div class="acts"><a class="btn g s" href={calendarLink(`${proc?.number || ''} ${purpose}`.trim(), nx.date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>
+      <div class="date">{longDate(nx.date)}</div>
+      <div class="when">{weekday(nx.date)}, {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}</div>
       <div class="what"><Gloss text={purpose} />{proc ? <span class="mut"> in {proc.number}{proc.court ? ', ' + proc.court : ''}</span> : ''}</div>
+      <div class="acts"><a class="btn g s" href={calendarLink(`${proc?.number || ''} ${purpose}`.trim(), nx.date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>
     </section> : <section class="next none" aria-label="Next date in court">
       <span class="k">Next date in court</span>
-      <div><div class="date">No date recorded</div><div class="when">Log the last hearing and its next date so it shows here.</div></div>
+      <div class="date">Not recorded</div>
+      <div class="when">Log the last hearing and its next date to see it here.</div>
       <div class="acts"><button class="btn s" onClick={() => app.nav('case', caseId, 'hearings')}>Log a hearing</button></div>
     </section>}
-    {up.deadlines.length > 0 && <section class="card pad"><h3 style="margin-top:0">Deadlines</h3>{up.deadlines.slice(0, 5).map(d => <div class="between small" key={d.id} style="padding:4px 0"><span><b>{formatDate(d.due)}</b> {d.what}</span><a href={calendarLink(d.what, d.due, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</section>}
-    <section class="card attn" aria-label="Needs your attention">
-      <h3 style="margin:0;padding:12px 14px 4px">Needs your attention</h3>
-      {attn.length ? attn.map(([n, label, go, tab]) => <button type="button" class="row-a" key={label} onClick={() => app.nav('case', caseId, tab)}>
-        <span class="num">{n}</span><span>{label}</span><span class="go">{go}</span></button>)
-        : <div class="clear">Nothing waiting. Every allegation has a reply and every difference is settled.</div>}
+    <section class="tiles" aria-label="Needs your attention">
+      {attn.length ? attn.map(([n, label, hint, tab]) => <button type="button" class="tile" key={label} onClick={() => app.nav('case', caseId, tab)} title={hint}>
+        <span class="num">{n}</span><span class="lb">{label}</span><span class="hint">{hint}</span></button>)
+        : <div class="tile clear"><span class="lb">All clear</span><span class="hint">Every allegation has a reply and every difference is settled.</span></div>}
     </section>
+    </div>
+    {up.deadlines.length > 0 && <section class="card pad"><h3 style="margin-top:0">Deadlines</h3>{up.deadlines.slice(0, 5).map(d => <div class="between small" key={d.id} style="padding:4px 0"><span><b>{formatDate(d.due)}</b> {d.what}</span><a href={calendarLink(d.what, d.due, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</section>}
     <FactsCard c={c} />
     <section class="card pad">
       <div class="between"><h3 style="margin:0">Proceedings</h3><button class="btn g s" onClick={() => editProc(null)}>Add proceeding</button></div>
