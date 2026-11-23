@@ -58,22 +58,27 @@ export function ProceedingForm({ caseId, p, onDone }) {
 const CopyIcon = () => <svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" /><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /></svg>;
 const TickIcon = () => <svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10.5l4 4 8-9" /></svg>;
 
+// "AC 123/2026, Ld. 1st JM, City" -> the key part in bold, the rest quieter
+function splitFact(v = '') {
+  const m = v.match(/^(.{3,}?)(\s*(?:,|\(|—| - |;).*)$/s);
+  return m ? [m[1], m[2]] : [v];
+}
 function FactsCard({ c }) {
   const app = useApp();
   const items = (c.facts || []).filter(it => it.label || it.value);
   const [all, setAll] = useState(false); const [copied, setCopied] = useState(-1);
   const edit = () => app.sheet.open(close => <FactsEditor c={c} onDone={close} />);
   const copy = (it, i) => navigator.clipboard?.writeText(it.value).then(() => { setCopied(i); setTimeout(() => setCopied(-1), 1500); }, () => app.toast('Copy not allowed here — long-press the text'));
-  const shown = all ? items : items.slice(0, 6);
+  const shown = all ? items : items.slice(0, 12);
   return <section class="card pad">
     <div class="between"><h3 style="margin:0">Quick facts</h3><button class="lnk" onClick={edit}>{items.length ? 'Edit' : 'Add facts'}</button></div>
     {!items.length && <p class="small mut" style="margin:6px 0 0">Case numbers, key dates, addresses and amounts you need when a lawyer calls. Tap one to copy it.</p>}
     {items.length > 0 && <div class="facts">{shown.map((it, i) => <button type="button" class="fact" key={i} onClick={() => copy(it, i)} title="Tap to copy">
       <span class="fl">{it.label}</span>
-      <span class="fv">{it.value}</span>
+      <span class="fv">{splitFact(it.value).map((t, k) => k ? <span class="fd" key={k}>{t}</span> : <b key={k}>{t}</b>)}</span>
       <span class={'fc' + (copied === i ? ' on' : '')} aria-label={copied === i ? 'Copied' : 'Copy'}>{copied === i ? <TickIcon /> : <CopyIcon />}</span>
     </button>)}</div>}
-    {items.length > 6 && <button class="lnk more" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length} facts`}</button>}
+    {items.length > 12 && <button class="lnk more" onClick={() => setAll(!all)}>{all ? 'Show fewer' : `Show all ${items.length} facts`}</button>}
   </section>;
 }
 function FactsEditor({ c, onDone }) {

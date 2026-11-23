@@ -123,17 +123,21 @@ a.btn{text-decoration:none;display:inline-block}
 .attn .go{font-size:13px;color:var(--acc);font-weight:500}
 .attn .clear{padding:12px 14px;color:var(--mut);font-size:14px}
 
-/* quick facts: a definition list; tap a row to copy */
-.facts{margin:8px -14px -12px}
-@media(min-width:760px){.facts{display:grid;grid-template-columns:1fr 1fr}.facts .fact:nth-child(odd){border-right:1px solid var(--line)}}
-.fact{all:unset;box-sizing:border-box;width:100%;display:grid;align-content:start;grid-template-columns:1fr 22px;gap:2px 10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer;min-width:0}
+/* quick facts: all at a glance — label column + value, tap a row to copy */
+.facts{margin:8px -14px -12px;display:grid;grid-template-columns:1fr}
+@media(min-width:760px){.facts{grid-template-columns:1fr 1fr}.facts .fact:nth-child(odd){border-right:1px solid var(--line)}}
+.fact{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:112px minmax(0,1fr) 18px;align-items:baseline;gap:10px;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer;min-width:0}
 .fact:hover{background:var(--raise)}
 .fact:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
-.fact .fl{font-size:13px;color:var(--mut)}
-.fact .fv{grid-column:1;font-size:15px;line-height:1.4;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
-.fact .fc{grid-row:1/3;grid-column:2;align-self:start;margin-top:2px;color:var(--mut);opacity:.55}
-.fact:hover .fc,.fact .fc.on{opacity:1;color:var(--acc)}
+.fact .fl{font-size:12.5px;color:var(--mut);line-height:1.35}
+.fact .fv{font-size:14px;line-height:1.4;color:var(--ink);overflow-wrap:anywhere}
+.fact .fv b{font-weight:600}
+.fact .fd{color:var(--mut)}
+.fact .fc{align-self:center;color:var(--mut);opacity:0;transition:opacity .12s}
+.fact:hover .fc,.fact:focus-visible .fc,.fact .fc.on{opacity:1;color:var(--acc)}
 .fact .fc.on{color:var(--ok)}
+@media(hover:none){.fact .fc{opacity:.45}}
+@media(max-width:400px){.fact{grid-template-columns:92px minmax(0,1fr) 18px}}
 .more{display:block;margin:12px 0 0}
 
 /* proceedings */
