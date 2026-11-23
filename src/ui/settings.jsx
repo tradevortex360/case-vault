@@ -27,11 +27,11 @@ function DriveCard() {
   return <div class="card pad">
     <h3 style="margin-top:0">Google Drive</h3>
     {app.inClaude ? <div class="small">Inside Claude, the app uses your <b>Google Drive connector</b>. {a ? <span class="tag ok">connected</span> : <span class="tag bad">not available — add Google Drive in Claude settings → Connectors</span>}</div> : <>
-      <div class="small">{a ? <><span class="tag ok">connected</span> Folder: <b>{root}</b></> : <span class="tag bad">not connected</span>}</div>
+      <div class="small">{a ? <><span class="tag ok">connected</span> Folder: <b>{root}</b></> : <span class="tag bad">not connected</span>}{v.syncError && <div class="box bad small" style="margin-top:6px">Last sync problem: {v.syncError}</div>}</div>
       <Field label="Google Client ID (one-time setup)"><input type="text" value={cid} placeholder="xxxx.apps.googleusercontent.com" onInput={e => setCid(e.currentTarget.value)} /></Field>
       <Field label="Main folder in My Drive"><input type="text" value={root} onInput={e => setRoot(e.currentTarget.value)} /></Field>
       <div class="row" style="margin-top:8px"><button class="btn" disabled={busy} onClick={connect}>{a ? 'Reconnect' : 'Connect Google Drive'}</button>
-        {a && <button class="btn g" onClick={() => v.sync().then(r => app.toast(`Synced: ${r.pulled || 0} in, ${r.pushed || 0} out`)).catch(e => app.toast('Sync failed: ' + e.message, 6000))}>Sync now</button>}</div></>}
+        {a && <button class="btn g" onClick={() => (a.ensureSignedIn ? a.ensureSignedIn() : Promise.resolve()).then(() => v.sync()).then(r => app.toast(`Synced: ${r.pulled || 0} in, ${r.pushed || 0} out`)).catch(e => app.toast('Sync failed: ' + e.message, 6000))}>Sync now</button>}</div></>}
     {v.syncError && <div class="box bad small" style="margin-top:8px">{v.syncError}</div>}
     {v.lastSync && <div class="tiny mut" style="margin-top:6px">Last sync {new Date(v.lastSync).toLocaleString()} · device {v.device}</div>}
   </div>;

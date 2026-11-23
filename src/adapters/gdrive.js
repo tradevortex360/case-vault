@@ -26,19 +26,26 @@ export class GoogleDriveAdapter {
       const tc = google.accounts.oauth2.initTokenClient({
         client_id: this.clientId, scope: 'https://www.googleapis.com/auth/drive',
         prompt: interactive ? '' : 'none',
-        callback: r => { if (r.error) return rej(new Error(r.error)); this.token = r.access_token; this.exp = Date.now() + (r.expires_in - 60) * 1000; res(true); },
+        callback: r => { if (r.error) return rej(new Error(r.error)); this.token = r.access_token; this.exp = Date.now() + (r.expires_in - 60) * 1000; this.v?.setting('gtoken', { t: this.token, exp: this.exp }); res(true); },
         error_callback: e => rej(new Error(e.type || 'sign-in failed')),
       });
       tc.requestAccessToken();
     });
   }
   get signedIn() { return !!this.token && Date.now() < this.exp; }
-  async auth() { if (!this.signedIn) { try { await this.signIn(false); } catch { throw Object.assign(new Error('Google Drive sign-in needed'), { code: 'reauth' }); } } return this.token; }
+  // The access token lasts ~1 hour. It is kept on this device so a reload doesn't need a new sign-in.
+  // A new token needs a tap (browsers block Google's sign-in window without one), so sync never opens it by itself.
+  async auth() {
+    if (!this.signedIn) { const g = await this.v?.setting('gtoken'); if (g?.t && Date.now() < g.exp) { this.token = g.t; this.exp = g.exp; } }
+    if (!this.signedIn) throw Object.assign(new Error('Google Drive sign-in needed — tap to sign in'), { code: 'reauth' });
+    return this.token;
+  }
+  async ensureSignedIn() { if (!this.signedIn) { try { await this.auth(); } catch { await this.signIn(true); } } }
 
   async req(url, opts = {}, retry = 2) {
     const t = await this.auth();
     const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + t } });
-    if (r.status === 401) { this.token = null; if (retry) return this.req(url, opts, retry - 1); }
+    if (r.status === 401) { this.token = null; this.exp = 0; await this.v?.setting('gtoken', null); throw Object.assign(new Error('Google Drive sign-in needed — tap to sign in'), { code: 'reauth' }); }
     if ((r.status === 429 || r.status >= 500) && retry) { await new Promise(s => setTimeout(s, 800 * (3 - retry))); return this.req(url, opts, retry - 1); }
     if (!r.ok) throw new Error(`Drive ${r.status}: ${(await r.text()).slice(0, 200)}`);
     return r;

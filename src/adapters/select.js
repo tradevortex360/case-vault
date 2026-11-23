@@ -16,7 +16,7 @@ export async function setupAdapter(v, { inClaude, claude }) {
   if (clientId) {
     const a = new GoogleDriveAdapter({ clientId, rootName: (await v.setting('rootName')) || 'Legal', v });
     v.setAdapter(a);
-    try { await a.signIn(false); v.scheduleSync(100); } catch { /* user taps "Connect Google Drive" */ }
+    v.scheduleSync(100); // uses the saved token if still valid; otherwise the sync badge asks for a tap
   }
 }
 

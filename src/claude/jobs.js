@@ -190,7 +190,8 @@ export async function mergeRemoteResults(v) {
   const files = (await a.listFolder('vault/results')).filter(f => f.name.endsWith('.json') && !seen.has(f.name)).sort((x, y) => x.name.localeCompare(y.name));
   let n = 0;
   for (const f of files) {
-    try { const r = JSON.parse(await a.readText(f)); for (const one of (Array.isArray(r) ? r : [r])) { if (one.type === 'extract' && !one.caseId && v.list('cases').length > 1) await v.put('jobs', { type: 'choose_case', status: 'needs_you', result: one }); else n += await applyResult(v, one); } }
+    let text; try { text = await a.readText(f); } catch (e) { throw e; } // network/sign-in problem: retry on the next sync
+    try { const r = JSON.parse(text); for (const one of (Array.isArray(r) ? r : [r])) { if (one.type === 'extract' && !one.caseId && v.list('cases').length > 1) await v.put('jobs', { type: 'choose_case', status: 'needs_you', result: one }); else n += await applyResult(v, one); } }
     catch (e) { console.warn('result', f.name, e); }
     seen.add(f.name);
   }
