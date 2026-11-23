@@ -34,10 +34,10 @@ export function documentResponse(v, docId, { order = 'paragraph', includeOrigina
     if (p.translation) B.push({ t: 'quote', text: 'English translation: ' + p.translation });
     if (!needsReply(d)) return;
     const own = v.list('replies', r => r.paraId === p.id && r.status === 'accepted');
-    own.forEach(r => { B.push({ t: 'reply', label: 'MY REPLY', lines: lines(r.text) }); unclearIn(r.text).forEach(u => clar.push({ where: paraWord(p.ref), text: 'Unclear: ' + u })); });
+    own.forEach(r => { B.push({ t: 'reply', label: 'My reply', lines: lines(r.text) }); unclearIn(r.text).forEach(u => clar.push({ where: paraWord(p.ref), text: 'Unclear: ' + u })); });
     if (!own.length) {
       const commons = (p.allegationIds || []).flatMap(aid => v.list('replies', r => r.allegationId === aid && !r.paraId && r.status === 'accepted').map(r => ({ r, a: als[aid] })));
-      if (commons.length) commons.forEach(({ r, a }) => B.push({ t: 'reply', label: `COVERED BY MY COMMON REPLY ON A${a?.n} · ${a?.title}`, lines: lines(r.text) }));
+      if (commons.length) commons.forEach(({ r, a }) => B.push({ t: 'reply', label: `Covered by my common reply on allegation A${a?.n}: ${a?.title}`, lines: lines(r.text) }));
       else B.push({ t: 'warn', text: paraStatus(v, p) === 'suggested' ? 'Not answered yet (a suggested reply is waiting for review).' : 'Not answered yet.' });
     }
   };

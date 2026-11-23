@@ -1,3 +1,4 @@
+import { formatTime } from '../search/dates.js';
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { Ctx, useRouter, useSheet, Toast, Sheet, useVault } from './core.jsx';
@@ -11,12 +12,12 @@ function SyncBadge() {
   const app = window.__app; const v = useVault(); const [pending, setPending] = useState(0);
   useEffect(() => { v.pendingCount().then(setPending); }, [v.version]);
   const a = v.adapter;
-  let cls = '', txt = 'Offline copy';
+  let cls = '', txt = 'Not synced yet';
   if (!a) { txt = 'Not connected to Drive'; cls = 'bad'; }
   else if (v.syncing) { txt = 'Syncing…'; cls = 'busy'; }
   else if (v.syncError) { txt = /sign-in|reauth/i.test(v.syncError) ? 'Tap to sign in to Drive' : navigator.onLine ? 'Sync problem' : 'Offline'; cls = 'bad'; }
   else if (pending) { txt = `${pending} change${pending > 1 ? 's' : ''} to sync`; cls = 'busy'; }
-  else if (v.lastSync) { txt = 'Synced ' + new Date(v.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); cls = 'ok'; }
+  else if (v.lastSync) { txt = 'Synced ' + formatTime(v.lastSync); cls = 'ok'; }
   return <button class="sync lnk" style="color:var(--mut)" onClick={async () => { if (a?.ensureSignedIn && /sign-in/i.test(v.syncError || '')) { try { await a.ensureSignedIn(); await v.sync(); } catch (e) { app.toast('Could not sign in: ' + (e.message || e), 6000); } } else app.nav('settings'); }} title={v.syncError || ''}><span class={'dot ' + cls} />{txt}</button>;
 }
 

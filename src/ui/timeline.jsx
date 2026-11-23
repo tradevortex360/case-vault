@@ -85,7 +85,7 @@ export function EventPage({ caseId, eventId }) {
         <button class="btn s" onClick={verify}>{e.verified?.status ? 'Change verification' : 'Verify'}</button>
         <button class="btn g s" onClick={() => app.sheet.open(close => <Sheet title="Edit event" onClose={close}><EventForm caseId={caseId} e={e} onDone={close} /></Sheet>)}>Edit</button>
         <button class="btn g s" onClick={merge}>Merge duplicate…</button>
-        <button class="btn g s" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, 'Delete this event? You can restore it from Settings → Backups.', 'Delete', true)) { await v.del('events', e.id); app.back(); } }}>Delete</button>
+        <button class="btn s danger" onClick={async () => { if (await confirmBox(app, 'Delete this event? You can restore it from Settings → Backups.', 'Delete', true)) { await v.del('events', e.id); app.back(); } }}>Delete</button>
       </div>
     </div>
     <h3>Where this is recorded</h3>

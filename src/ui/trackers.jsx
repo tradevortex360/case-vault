@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-import { useApp, useVault, Sheet, Field, Empty, confirmBox, TextBox, fmtMoney, todayISO } from './core.jsx';
+import { useApp, useVault, Sheet, Field, Empty, confirmBox, TextBox, fmtMoney, todayISO, Gloss } from './core.jsx';
 import { proceedingsOf, allegationsOf, eventsOf, calendarLink, upcoming } from '../domain.js';
 import { formatDate, parseDate } from '../search/dates.js';
 import { storeLocalFile } from '../store/files.js';
@@ -8,7 +8,7 @@ import { storeLocalFile } from '../store/files.js';
 const dateIn = (s) => { if (!s?.trim()) return null; const d = parseDate(s); return d ? (d.precision === 'day' ? d.from : s.trim()) : undefined; };
 function DelBtn({ coll, id, onDone, what = 'this entry' }) {
   const app = useApp();
-  return <button class="btn g" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, `Delete ${what}?`, 'Delete', true)) { await app.v.del(coll, id); onDone(); } }}>Delete</button>;
+  return <button class="btn danger" onClick={async () => { if (await confirmBox(app, `Delete ${what}?`, 'Delete', true)) { await app.v.del(coll, id); onDone(); } }}>Delete</button>;
 }
 async function openFile(app, id) {
   const blob = await app.v.file(id); if (!blob) return app.toast('File not on this device yet — sync once online');
@@ -141,7 +141,7 @@ export function Hearings({ caseId }) {
   const open = (T, title, x) => app.sheet.open(close => <Sheet title={title} onClose={close}><T caseId={caseId} x={x} onDone={close} /></Sheet>);
   if (!Object.keys(procs).length) return <main><Empty>Add a proceeding first (Overview → Proceedings in this case).</Empty></main>;
   return <main>
-    {up.hearings.length > 0 && <div class="box warn"><b class="small">COMING UP</b>{up.hearings.slice(0, 4).map(({ date, h: x }) => <div class="between small" key={x.id} style="padding:3px 0"><span><b>{formatDate(date)}</b> · {procs[x.proceedingId]?.number} {x.nextPurpose || x.purpose ? '— ' + (x.nextPurpose || x.purpose) : ''}</span><a href={calendarLink(`${procs[x.proceedingId]?.number} — ${x.nextPurpose || x.purpose || 'hearing'}`, date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</div>}
+    {up.hearings.length > 0 && <section class="card pad"><h3 style="margin:0 0 4px">Coming up</h3>{up.hearings.slice(0, 4).map(({ date, h: x }) => <div class="between small" key={x.id} style="padding:6px 0;border-top:1px solid var(--line)"><span><b>{formatDate(date)}</b> {procs[x.proceedingId]?.number}{x.nextPurpose || x.purpose ? ', ' : ''}<Gloss text={x.nextPurpose || x.purpose || ''} /></span><a class="btn g s" href={calendarLink(`${procs[x.proceedingId]?.number || ''} ${x.nextPurpose || x.purpose || 'hearing'}`.trim(), date, c.name)} target="_blank" rel="noopener">Add to calendar</a></div>)}</section>}
     <div class="between"><h2 style="margin:8px 0 4px">Hearing log</h2><button class="btn" onClick={() => open(HearingForm, 'Log a hearing', null)}>+ Log hearing</button></div>
     {!hs.length && <div class="small mut">After each date, note in 30 seconds what happened and the next date.</div>}
     <div class="card list">{hs.map(x => <div class="item" key={x.id} onClick={() => open(HearingForm, 'Hearing', x)}><div class="d">{formatDate(x.date)}</div><div class="grow"><b>{procs[x.proceedingId]?.number}</b> {x.purpose && <span class="mut">— {x.purpose}</span>}<div class="small">{x.outcome}</div>{x.nextDate && <span class="tag warn">Next: {formatDate(x.nextDate)}</span>}</div></div>)}</div>

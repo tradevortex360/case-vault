@@ -5,7 +5,7 @@ import { canRunNow } from '../claude/jobs.js';
 import { askSystem } from '../claude/prompts.js';
 import { SearchIndex, buildItems } from '../search/index.js';
 import { allegationsOf, eventsOf, parasOf, docsOf, paraStatus, needsReply, docCite, docLong } from '../domain.js';
-import { formatDate, overlaps, parseDate } from '../search/dates.js';
+import { formatDate, overlaps, parseDate, formatWhen } from '../search/dates.js';
 
 const QUICK = [
   ['Case assessment', 'Give me a frank assessment of where I stand in this case right now: my strongest points, my weakest points, and the main risks. Cite the documents and replies you rely on.'],
@@ -61,7 +61,7 @@ export function Ask({ caseId }) {
     {!can && <div class="box warn small">Asking needs the app opened inside Claude (online). Here you can read earlier answers.</div>}
     {hist.length === 0 && !live && <Empty>No questions yet.</Empty>}
     {hist.map(x => <div key={x.id}><div class="msg me">{x.question}</div><div class="msg ai">{x.answer}
-      <div class="row tiny" style="margin-top:6px"><span class="mut">{new Date(x.at).toLocaleString()}</span>
+      <div class="row tiny" style="margin-top:6px"><span class="mut">{formatWhen(x.at)}</span>
         <button class="lnk" onClick={async () => { await v.put('notes', { caseId, title: 'From Ask Claude: ' + x.question.slice(0, 60), text: x.answer, date: new Date(x.at).toISOString().slice(0, 10) }); app.toast('Pinned to case notes'); }}>Pin to notes</button>
         <button class="lnk bad" onClick={async () => { if (await confirmBox(app, 'Delete this question and answer?', 'Delete', true)) v.del('qa', x.id); }}>Delete</button></div></div></div>)}
     {live && <div><div class="msg me">{q}</div><div class="msg ai">{live}</div></div>}

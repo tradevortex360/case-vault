@@ -55,7 +55,7 @@ export function ProceedingForm({ caseId, p, onDone }) {
     <div class="small mut">Used when documents are named, e.g. "filed by the Petitioner in AC 123/2026".</div>
     <Field label="Notes"><textarea rows={2} value={f.notes} onInput={set('notes')} /></Field>
     <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Save</button>
-      {p && <button class="btn g bad" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, 'Delete this proceeding? Documents stay in the case.', 'Delete', true)) { await v.del('proceedings', p.id); onDone(); } }}>Delete</button>}</div>
+      {p && <button class="btn danger" onClick={async () => { if (await confirmBox(app, 'Delete this proceeding? Documents stay in the case.', 'Delete', true)) { await v.del('proceedings', p.id); onDone(); } }}>Delete</button>}</div>
   </div>;
 }
 

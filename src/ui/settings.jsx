@@ -1,3 +1,4 @@
+import { formatWhen } from '../search/dates.js';
 import { DEFAULT_GOOGLE_CLIENT_ID } from '../config.js';
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
@@ -28,12 +29,13 @@ function DriveCard() {
     <h3 style="margin-top:0">Google Drive</h3>
     {app.inClaude ? <div class="small">Inside Claude, the app uses your <b>Google Drive connector</b>. {a ? <span class="tag ok">connected</span> : <span class="tag bad">not available — add Google Drive in Claude settings → Connectors</span>}</div> : <>
       <div class="small">{a ? <><span class="tag ok">connected</span> Folder: <b>{root}</b></> : <span class="tag bad">not connected</span>}{v.syncError && <div class="box bad small" style="margin-top:6px">Last sync problem: {v.syncError}</div>}</div>
+      <details style="margin-top:8px" open={!location.hostname.endsWith('github.io')}><summary class="small mut">Advanced: Google sign-in ID and folder name</summary>
       <Field label="Google Client ID (one-time setup)"><input type="text" value={cid} placeholder="xxxx.apps.googleusercontent.com" onInput={e => setCid(e.currentTarget.value)} /></Field>
-      <Field label="Main folder in My Drive"><input type="text" value={root} onInput={e => setRoot(e.currentTarget.value)} /></Field>
+      <Field label="Main folder in My Drive"><input type="text" value={root} onInput={e => setRoot(e.currentTarget.value)} /></Field></details>
       <div class="row" style="margin-top:8px"><button class="btn" disabled={busy} onClick={connect}>{a ? 'Reconnect' : 'Connect Google Drive'}</button>
         {a && <button class="btn g" onClick={() => (a.ensureSignedIn ? a.ensureSignedIn() : Promise.resolve()).then(() => v.sync()).then(r => app.toast(`Synced: ${r.pulled || 0} in, ${r.pushed || 0} out`)).catch(e => app.toast('Sync failed: ' + e.message, 6000))}>Sync now</button>}</div></>}
     {v.syncError && <div class="box bad small" style="margin-top:8px">{v.syncError}</div>}
-    {v.lastSync && <div class="tiny mut" style="margin-top:6px">Last sync {new Date(v.lastSync).toLocaleString()} · device {v.device}</div>}
+    {v.lastSync && <div class="tiny mut" style="margin-top:6px">Last sync {formatWhen(v.lastSync)} · device {v.device}</div>}
   </div>;
 }
 
@@ -80,8 +82,8 @@ function BackupsCard() {
     <div class="small mut">A snapshot is taken automatically before every Claude update and large sync, and before any restore. Restoring undoes later changes on all devices.</div>
     <div class="row" style="margin:8px 0"><button class="btn g s" onClick={async () => { await v.backup('Manual backup'); app.toast('Backup taken'); }}>Take a backup now</button><button class="btn g s" onClick={exportAll}>Export everything (file)</button>
       <label class="btn g s" style="cursor:pointer">Import a vault file<input type="file" accept="application/json,.json" style="display:none" onChange={async e => { const inp = e.currentTarget; const f = inp.files[0]; if (!f) return; try { const n = await importFile(v, JSON.parse(await f.text())); app.toast(n ? `Imported ${n} items` : 'Nothing new to import'); } catch (err) { app.toast('Not a Case Vault file: ' + err.message, 6000); } inp.value = ''; }} /></label></div>
-    {list.slice(0, 15).map(b => <div class="between small" key={b.at} style="padding:4px 0;border-top:1px solid var(--line)"><span>{new Date(b.at).toLocaleString()} — {b.reason}</span>
-      <button class="lnk" onClick={async () => { if (await confirmBox(app, 'Restore the vault to ' + new Date(b.at).toLocaleString() + '? Changes made after it are undone (a backup of the current state is taken first).', 'Restore')) { const n = await v.restore(b.at); app.toast(`Restored (${n} changes undone)`); } }}>Restore</button></div>)}
+    {list.slice(0, 15).map(b => <div class="between small" key={b.at} style="padding:4px 0;border-top:1px solid var(--line)"><span>{formatWhen(b.at)} — {b.reason}</span>
+      <button class="lnk" onClick={async () => { if (await confirmBox(app, 'Restore the vault to ' + formatWhen(b.at) + '? Changes made after it are undone (a backup of the current state is taken first).', 'Restore')) { const n = await v.restore(b.at); app.toast(`Restored (${n} changes undone)`); } }}>Restore</button></div>)}
     {!list.length && <div class="tiny mut">No backups yet.</div>}</div>;
 }
 
@@ -105,7 +107,7 @@ function JobsCard() {
     {need.map(j => <div class="box warn small" key={j.id}><b>Which case does “{j.result?.document?.title || j.result?.fileName}” belong to?</b>
       <div class="row" style="margin-top:6px">{cases.map(c => <button class="btn s g" onClick={async () => { await applyResult(v, { ...j.result, caseId: c.id }); await v.patch('jobs', j.id, { status: 'done' }); app.toast('Filed in ' + c.name); }}>{c.name}</button>)}</div></div>)}
     {!q.length && !need.length && <div class="small mut">Nothing waiting.</div>}
-    {q.map(j => <div class="between small" key={j.id} style="padding:3px 0"><span>{j.type.replace('_', ' ')} · {new Date(j.requestedAt).toLocaleString()}{j.lastError ? ' · last error: ' + j.lastError : ''}</span><button class="lnk bad" onClick={() => v.patch('jobs', j.id, { status: 'cancelled' })}>Cancel</button></div>)}
+    {q.map(j => <div class="between small" key={j.id} style="padding:3px 0"><span>{j.type.replace('_', ' ')} · {formatWhen(j.requestedAt)}{j.lastError ? ' · last error: ' + j.lastError : ''}</span><button class="lnk bad" onClick={() => v.patch('jobs', j.id, { status: 'cancelled' })}>Cancel</button></div>)}
   </div>;
 }
 

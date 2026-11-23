@@ -67,3 +67,12 @@ export function overlaps(dv, from, to) {
   const d = typeof dv === 'string' ? parseDate(dv) : dv; if (!d) return false;
   return (!from || d.to >= from) && (!to || d.from <= to);
 }
+
+// "23.11.2026, 4:49 pm" — day first, like everything else in the app
+export function formatWhen(ms) {
+  if (!ms) return '';
+  const d = new Date(ms); const p = n => String(n).padStart(2, '0');
+  let h = d.getHours(); const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}, ${h}:${p(d.getMinutes())} ${ap}`;
+}
+export function formatTime(ms) { const w = formatWhen(ms); return w.slice(w.indexOf(', ') + 2); }

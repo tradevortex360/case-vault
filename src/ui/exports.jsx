@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { useApp, useVault, Empty } from './core.jsx';
 import { docsOf, needsReply, parasOf, paraStatus, docLabel } from '../domain.js';
 import { documentResponse, caseStory } from '../export/model.js';
-import { formatDate } from '../search/dates.js';
+import { formatDate, formatWhen } from '../search/dates.js';
 import { requestJob, canRunNow } from '../claude/jobs.js';
 
 async function fontBytes(name) { const r = await fetch(import.meta.env.BASE_URL + 'fonts/' + name); if (!r.ok) throw new Error('font'); return new Uint8Array(await r.arrayBuffer()); }
@@ -52,7 +52,7 @@ export function Exports({ caseId }) {
   return <main>
     <h2 style="margin:4px 0">Export for your lawyer</h2>
     <div class="card pad">
-      <h3 style="margin-top:0">1 · My response to one document</h3>
+      <h3 style="margin-top:0">Reply to one document</h3>
       {!docs.length ? <Empty>No documents filed against you yet.</Empty> : <>
         <select value={docId} onChange={e => setDocId(e.currentTarget.value)}>{docs.map(x => <option value={x.id}>{docLabel(v, x)} ({formatDate(x.date)})</option>)}</select>
         {stats && <div class="small mut" style="margin-top:4px">{stats.done} of {stats.t} paragraphs answered{stats.done < stats.t ? ' — unanswered ones are marked "Not answered yet"' : ''}.</div>}
@@ -61,10 +61,10 @@ export function Exports({ caseId }) {
         <div class="row"><button class="btn" disabled={!!busy} onClick={() => go('doc', 'pdf')}>{busy === 'docpdf' ? 'Making PDF…' : 'PDF'}</button><button class="btn g" disabled={!!busy} onClick={() => go('doc', 'docx')}>{busy === 'docdocx' ? 'Making Word…' : 'Word'}</button></div></>}
     </div>
     <div class="card pad">
-      <h3 style="margin-top:0">2 · The whole case story</h3>
+      <h3 style="margin-top:0">The whole case story</h3>
       <div class="small mut">For a new lawyer, or to refresh your current one: parties and proceedings, the story in date order with your response in brief, your main lines of defence, and where things stand.</div>
       <div class="row" style="margin:8px 0"><span class={'chip' + (len === 'snapshot' ? ' on' : '')} onClick={() => setLen('snapshot')}>One-page snapshot</span><span class={'chip' + (len === 'full' ? ' on' : '')} onClick={() => setLen('full')}>Full brief</span></div>
-      <div class="small">{story ? <>✓ Written narrative from {new Date(story.at).toLocaleString()}.</> : <span class="mut">No written narrative yet — the export will be a structured chronology (works offline).</span>}</div>
+      <div class="small">{story ? <>✓ Written narrative from {formatWhen(story.at)}.</> : <span class="mut">No written narrative yet — the export will be a structured chronology (works offline).</span>}</div>
       <div class="row" style="margin-top:8px">
         <button class="btn g" onClick={() => requestJob(app, 'story', { caseId, length: len })}>{story ? 'Rewrite with Claude' : 'Write with Claude'}</button>
         <button class="btn" disabled={!!busy} onClick={() => go('story', 'pdf')}>{busy === 'storypdf' ? 'Making PDF…' : 'PDF'}</button><button class="btn g" disabled={!!busy} onClick={() => go('story', 'docx')}>{busy === 'storydocx' ? 'Making Word…' : 'Word'}</button></div>

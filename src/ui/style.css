@@ -21,7 +21,7 @@ a{color:var(--acc)}
 .tabs::-webkit-scrollbar{display:none}
 .tab{border:0;background:none;padding:7px 11px;border-radius:8px;color:var(--mut);white-space:nowrap;cursor:pointer;font-weight:500;font-size:14px}
 .tab.on{background:var(--acc2);color:var(--acc)}
-.tab .n{font-size:11px;background:var(--bad);color:#fff;border-radius:9px;padding:0 6px;margin-left:4px}
+.tab .n{font-size:11px;background:var(--bad);color:var(--card);font-weight:700;border-radius:9px;padding:0 6px;margin-left:4px}
 main{padding:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:10px}
 .card.pad{padding:12px 14px}
@@ -158,3 +158,17 @@ a.btn{text-decoration:none;display:inline-block}
 .gl-t:hover{text-decoration-color:var(--acc);color:var(--acc)}
 .gl-t:focus-visible{outline:2px solid var(--acc);outline-offset:1px;border-radius:2px}
 .toast{white-space:pre-line;width:max-content;max-width:min(92vw,520px);line-height:1.45;padding:10px 14px}
+
+/* destructive actions: outlined in red, never filled */
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}.btn.danger:hover{background:var(--badbg)}
+
+/* form polish (from the full-app audit) */
+.btn{white-space:nowrap}
+.between>.btn,.between>button,.between>a.btn{flex:none}
+label.row{flex-wrap:nowrap;align-items:flex-start}
+label.row>input[type=radio],label.row>input[type=checkbox]{flex:none;margin-top:4px;accent-color:var(--brass)}
+label.row>span{flex:1;min-width:0}
+input[type=file]{font-size:13px;color:var(--mut);max-width:100%}
+input[type=file]::file-selector-button{font:inherit;font-weight:500;color:var(--acc);background:transparent;border:1px solid var(--line);border-radius:9px;padding:6px 12px;margin-right:10px;cursor:pointer}
+input[type=file]::file-selector-button:hover{border-color:var(--acc)}
+@media(max-width:700px){.toast{bottom:auto;top:12px}}

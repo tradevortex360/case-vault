@@ -4,7 +4,7 @@ import { useApp, useVault, Sheet, Field, Empty, confirmBox, openPdf, PointLines,
 import { allegationsOf, allegationProgress, repliesFor, paraStatus, datesIn, eventsOf, nextAllegationNo, addDays, docCite } from '../domain.js';
 import { ReplyComposer, ReplyView } from './replies.jsx';
 import { requestJob } from '../claude/jobs.js';
-import { formatDate, parseDate, sortKey } from '../search/dates.js';
+import { formatDate, parseDate, sortKey, formatWhen } from '../search/dates.js';
 import { SearchIndex, buildItems } from '../search/index.js';
 
 function AllegationForm({ caseId, a, onDone }) {
@@ -16,7 +16,7 @@ function AllegationForm({ caseId, a, onDone }) {
     <Field label="Allegation in brief"><textarea rows={3} value={f.brief} onInput={e => setF({ ...f, brief: e.currentTarget.value })} /></Field>
     <Field label="Group"><input type="text" value={f.group} placeholder="e.g. DV order & enforcement" onInput={e => setF({ ...f, group: e.currentTarget.value })} /></Field>
     <div class="row" style="margin-top:10px"><button class="btn" onClick={save}>Save</button>
-      {a && <button class="btn g" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, 'Delete this allegation? Paragraphs and replies stay; they are just no longer grouped here.', 'Delete', true)) { await v.del('allegations', a.id); onDone(); app.back(); } }}>Delete</button>}</div>
+      {a && <button class="btn danger" onClick={async () => { if (await confirmBox(app, 'Delete this allegation? Paragraphs and replies stay; they are just no longer grouped here.', 'Delete', true)) { await v.del('allegations', a.id); onDone(); app.back(); } }}>Delete</button>}</div>
   </div>;
 }
 
@@ -89,10 +89,10 @@ export function AllegationPage({ caseId, alId }) {
     </div>
 
     <div class="box acc">
-      <div class="between"><b class="small">CONSOLIDATED RESPONSE</b>
+      <div class="between"><b>Consolidated response</b>
         <button class="btn s" disabled={!allReplies.length} onClick={() => requestJob(app, 'consolidate', { allegationId: a.id })}>{cons ? 'Update' : 'Build from my replies'}</button></div>
       {cons ? <><PointLines text={cons.text} onChange={t => v.patch('consolidated', a.id, { text: t })} />
-        <div class="tiny mut">{stale ? <span style="color:var(--warn)">⚠ You changed replies after this was built — tap Update.</span> : 'Built ' + new Date(cons.at).toLocaleString()}</div></>
+        <div class="tiny mut">{stale ? <span style="color:var(--warn)">⚠ You changed replies after this was built — tap Update.</span> : 'Built ' + formatWhen(cons.at)}</div></>
         : <div class="small mut">{allReplies.length ? 'A short, high-impact summary of your answer to this allegation.' : 'Reply to at least one paragraph first.'}</div>}
     </div>
 

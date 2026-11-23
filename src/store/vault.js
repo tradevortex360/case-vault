@@ -1,3 +1,4 @@
+import { formatWhen } from '../search/dates.js';
 // Local-first vault: everything is stored on the device (IndexedDB) and works offline.
 // Sync exchanges append-only op files with a storage adapter (Google Drive / Claude connector / mock).
 import { openDB } from 'idb';
@@ -66,7 +67,7 @@ export class Vault {
   async backups() { return (await this.db.getAll('backups')).map(b => ({ at: b.at, reason: b.reason })).reverse(); }
   async restore(at) {
     const b = await this.db.get('backups', at); if (!b) throw new Error('Backup not found');
-    await this.backup('Before restoring ' + new Date(at).toLocaleString());
+    await this.backup('Before restoring ' + formatWhen(at));
     const ops = diffToOps(toJSON(this.state), b.state, this.device);
     const tx = this.db.transaction(['ops', 'outbox'], 'readwrite');
     for (const op of ops) { tx.objectStore('ops').put(op); tx.objectStore('outbox').put(op); }

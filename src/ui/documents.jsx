@@ -121,7 +121,7 @@ export function DocPage({ caseId, docId }) {
         <button class="btn g s" onClick={() => app.sheet.open(close => <Sheet title="Edit document" onClose={close}><DocForm caseId={caseId} d={d} onDone={close} /></Sheet>)}>Edit details</button>
         {reply && <button class="btn g s" onClick={() => requestJob(app, 'suggest', { docId: d.id })}>Suggest replies</button>}
         {reply && <button class="btn g s" onClick={() => app.nav('case', caseId, 'exports', d.id)}>Export my response</button>}
-        <button class="btn g s" style="color:var(--bad);border-color:var(--bad)" onClick={async () => { if (await confirmBox(app, 'Remove this document from the vault? The PDF stays in Drive.', 'Remove', true)) { await v.del('documents', d.id); app.back(); } }}>Remove</button>
+        <button class="btn s danger" onClick={async () => { if (await confirmBox(app, 'Remove this document from the vault? The PDF stays in Drive.', 'Remove', true)) { await v.del('documents', d.id); app.back(); } }}>Remove</button>
       </div>
       {!reply && <div class="small mut" style="margin-top:6px">{d.filedBy === 'me' ? 'Your own filing: it feeds the timeline and is your recorded stand — no reply needed.' : 'Official record: feeds the timeline. You can add private notes under Notes.'}</div>}
     </div>
@@ -132,7 +132,7 @@ export function DocPage({ caseId, docId }) {
       const own = repliesFor(v, { paraId: p.id });
       const commons = (p.allegationIds || []).flatMap(aid => v.list('replies', r => r.allegationId === aid && !r.paraId && r.status === 'accepted'));
       return <div class="card pad" key={p.id} id={'p-' + p.id}>
-        <div class="between"><b>{paraWord(p.ref)}</b><span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}{p.page && !d.fileId && <span class="tiny mut">page {p.page}</span>}
+        <div class="between"><b>{paraWord(p.ref).replace(/^p/, 'P')}</b><span class="row">{p.page && d.fileId && <button class="lnk" onClick={() => openPdf(app, d, p.page)}>page {p.page}</button>}{p.page && !d.fileId && <span class="tiny mut">page {p.page}</span>}
           <button class="lnk" onClick={() => app.sheet.open(close => <CorrectText p={p} onDone={close} />)}>Correct text</button></span></div>
         <ParaText p={p} d={d} />
         <div style="margin-top:6px">{(p.allegationIds || []).map(aid => als[aid] && <span class="tag" style="cursor:pointer" onClick={() => app.nav('case', caseId, 'al', aid)}>A{als[aid].n} · {als[aid].title}</span>)}

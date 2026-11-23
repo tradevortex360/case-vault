@@ -36,7 +36,7 @@ export function ReplyView({ r, compact }) {
   const sources = r.sources || [];
   return <div class={'reply' + (sug ? ' sug' : '')} id={'r-' + r.id}>
     <div class="between tiny" style="font-weight:600;color:var(--mut)">
-      <span>{sug ? '✨ SUGGESTED BY CLAUDE — review' : r.paraId ? 'YOUR REPLY' : 'COMMON REPLY'}{r.toPolish ? ' · waiting to be polished' : ''}</span>
+      <span>{sug ? '✨ Suggested by Claude — please review' : r.paraId ? 'Your reply' : 'Common reply'}{r.toPolish ? ' · waiting to be polished' : ''}</span>
     </div>
     {r._conflicts?.length > 0 && <div class="box bad small"><b>Edited on two devices at once.</b> Choose which version to keep:
       {[{ value: r.text, label: 'Current' }, ...r._conflicts.filter(c => c.field === 'text').map(c => ({ value: c.value, label: 'From ' + c.device.split('-')[0] }))].map((o, i) =>
