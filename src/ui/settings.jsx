@@ -1,3 +1,4 @@
+import { DEFAULT_GOOGLE_CLIENT_ID } from '../config.js';
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { useApp, useVault, Field, confirmBox, Sheet } from './core.jsx';
@@ -11,7 +12,7 @@ import { saveBlob } from './exports.jsx';
 function DriveCard() {
   const app = useApp(); const v = useVault();
   const [cid, setCid] = useState(''); const [root, setRoot] = useState('Legal'); const [busy, setBusy] = useState(false);
-  useEffect(() => { (async () => { setCid((await v.setting('googleClientId')) || ''); setRoot((await v.setting('rootName')) || 'Legal'); })(); }, []);
+  useEffect(() => { (async () => { setCid((await v.setting('googleClientId')) || (location.hostname.endsWith('github.io') ? DEFAULT_GOOGLE_CLIENT_ID : '')); setRoot((await v.setting('rootName')) || 'Legal'); })(); }, []);
   const a = v.adapter;
   const connect = async () => {
     if (!cid.trim()) return app.toast('Paste your Google Client ID first (see the setup guide)');

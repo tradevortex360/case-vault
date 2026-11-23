@@ -1,3 +1,4 @@
+import { DEFAULT_GOOGLE_CLIENT_ID } from '../config.js';
 import { GoogleDriveAdapter } from './gdrive.js';
 import { ClaudeDriveAdapter } from './claude.js';
 import { MockAdapter } from './mock.js';
@@ -11,7 +12,7 @@ export async function setupAdapter(v, { inClaude, claude }) {
     if (claude.mcp) { v.setAdapter(new ClaudeDriveAdapter(claude.mcp, { v, rootName: (await v.setting('rootName')) || 'Legal' })); }
     return;
   }
-  const clientId = await v.setting('googleClientId');
+  const clientId = (await v.setting('googleClientId')) || (location.hostname.endsWith('github.io') ? DEFAULT_GOOGLE_CLIENT_ID : '');
   if (clientId) {
     const a = new GoogleDriveAdapter({ clientId, rootName: (await v.setting('rootName')) || 'Legal', v });
     v.setAdapter(a);
