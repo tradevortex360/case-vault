@@ -78,9 +78,9 @@ export function Evidence({ caseId }) {
 }
 
 // ---------------- Hearings, deadlines, directions ----------------
-function HearingForm({ caseId, x, onDone }) {
+export function HearingForm({ caseId, x, onDone, procId }) {
   const app = useApp(); const v = app.v; const procs = proceedingsOf(v, caseId);
-  const [f, setF] = useState({ proceedingId: x?.proceedingId || procs[0]?.id || '', date: x?.date ? formatDate(x.date) : formatDate(todayISO()), purpose: x?.purpose || '', outcome: x?.outcome || '', appeared: x?.appeared || '', directions: x?.directions || '', nextDate: x?.nextDate ? formatDate(x.nextDate) : '', nextPurpose: x?.nextPurpose || '', notes: x?.notes || '' });
+  const [f, setF] = useState({ proceedingId: x?.proceedingId || procId || procs[0]?.id || '', date: x?.date ? formatDate(x.date) : formatDate(todayISO()), purpose: x?.purpose || '', outcome: x?.outcome || '', appeared: x?.appeared || '', directions: x?.directions || '', nextDate: x?.nextDate ? formatDate(x.nextDate) : '', nextPurpose: x?.nextPurpose || '', notes: x?.notes || '' });
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const save = async () => {
     const d = dateIn(f.date), nd = dateIn(f.nextDate); if (!d || nd === undefined) return app.toast('Check the dates');
@@ -100,9 +100,9 @@ function HearingForm({ caseId, x, onDone }) {
     <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>Save</button>{x && <DelBtn coll="hearings" id={x.id} onDone={onDone} what="this hearing entry" />}</div>
   </div>;
 }
-function DeadlineForm({ caseId, x, onDone }) {
+export function DeadlineForm({ caseId, x, onDone, procId }) {
   const app = useApp(); const v = app.v; const procs = proceedingsOf(v, caseId);
-  const [f, setF] = useState({ proceedingId: x?.proceedingId || procs[0]?.id || '', what: x?.what || '', from: '', days: '', due: x?.due ? formatDate(x.due) : '', basis: x?.basis || '' });
+  const [f, setF] = useState({ proceedingId: x?.proceedingId || procId || procs[0]?.id || '', what: x?.what || '', from: '', days: '', due: x?.due ? formatDate(x.due) : '', basis: x?.basis || '' });
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const calc = () => { const d = parseDate(f.from); if (d && +f.days) { const dt = new Date(d.from + 'T00:00:00Z'); dt.setUTCDate(dt.getUTCDate() + +f.days); setF({ ...f, due: formatDate(dt.toISOString().slice(0, 10)) }); } };
   const save = async () => { const due = dateIn(f.due); if (!due || !f.what.trim()) return app.toast('Add what is due and the date'); const data = { proceedingId: f.proceedingId, what: f.what, due, basis: f.basis, caseId }; if (x) await v.patch('deadlines', x.id, data); else await v.put('deadlines', { ...data, done: false }); onDone(); };
@@ -115,9 +115,9 @@ function DeadlineForm({ caseId, x, onDone }) {
     <div class="row" style="margin-top:12px"><button class="btn" onClick={save}>Save</button>{x && <DelBtn coll="deadlines" id={x.id} onDone={onDone} />}</div>
   </div>;
 }
-function DirectionForm({ caseId, x, onDone }) {
+export function DirectionForm({ caseId, x, onDone, procId }) {
   const app = useApp(); const v = app.v; const procs = proceedingsOf(v, caseId);
-  const [f, setF] = useState({ proceedingId: x?.proceedingId || procs[0]?.id || '', orderDate: x?.orderDate ? formatDate(x.orderDate) : '', text: x?.text || '', status: x?.status || 'to comply', complianceNotes: x?.complianceNotes || '', evidenceIds: x?.evidenceIds || [] });
+  const [f, setF] = useState({ proceedingId: x?.proceedingId || procId || procs[0]?.id || '', orderDate: x?.orderDate ? formatDate(x.orderDate) : '', text: x?.text || '', status: x?.status || 'to comply', complianceNotes: x?.complianceNotes || '', evidenceIds: x?.evidenceIds || [] });
   const [addingEv, setAddingEv] = useState(false);
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
   const save = async () => { const od = dateIn(f.orderDate); if (od === undefined || !f.text.trim()) return app.toast('Add the direction and order date'); const data = { ...f, orderDate: od, caseId }; if (x) await v.patch('directions', x.id, data); else await v.put('directions', data); onDone(); };

@@ -40,7 +40,7 @@ const NEEDS_NUMBER = new Set(['MS', 'GR', 'PS', 'WS', 'OC']); // only when follo
 const termRe = Object.keys(TERMS).sort((a, b) => b.length - a.length).map(t => (/^[A-Za-z]/.test(t) && /[A-Za-z]$/.test(t) ? `\\b${esc(t)}\\b` : /^[A-Za-z]/.test(t) ? `\\b${esc(t)}` : esc(t)) + (NEEDS_NUMBER.has(t) ? '(?=\\s*(?:Case\\s*)?\\d|,)' : '')).join('|');
 // a section reference: s.23(2) / u/s 31 / ss. 19 & 23 / Section 25, or "BNS 85, 316(2), 3(5)"
 const secRe = String.raw`(?:\bu\/s\s*|\bss?\.\s*|\b[Ss]ections?\s+)\d+[A-Z]?(?:\(\d+\))?(?:\s*(?:,|&|and)\s*\d+[A-Z]?(?:\(\d+\))?)*|\b(?:PWDVA|BNS)\s+\d+[A-Z]?(?:\(\d+\))?(?:\s*,\s*\d+[A-Z]?(?:\(\d+\))?)*`;
-const RE = new RegExp(`(${secRe})|(${termRe})`, 'g');
+const RE = new RegExp(`(${secRe})|(${termRe})`, 'gi');
 
 function actNear(text, at) { // the Act named closest after (or before) the reference
   const after = text.slice(at).match(/\b(PWDVA|BNS|BNSS|IPC|CrPC|HMA)\b/); if (after) return after[1];

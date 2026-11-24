@@ -1,3 +1,4 @@
+import { ProceedingPage, procSummary } from './proceeding.jsx';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useApp, useVault, Sheet, Field, Empty, confirmBox, Gloss } from './core.jsx';
@@ -10,7 +11,7 @@ import { Evidence, Hearings, Money, People } from './trackers.jsx';
 import { Ask } from './ask.jsx';
 import { Exports } from './exports.jsx';
 import { proceedingsOf, upcoming, allegationsOf, allegationProgress, docsOf, calendarLink } from '../domain.js';
-import { formatDate } from '../search/dates.js';
+import { formatDate, parseDate } from '../search/dates.js';
 
 const TABS = [['overview', 'Overview'], ['timeline', 'Timeline'], ['documents', 'Documents'], ['allegations', 'Allegations'], ['verify', 'For verification'], ['evidence', 'Evidence'], ['hearings', 'Hearings & orders'], ['money', 'Expenses'], ['people', 'People & contacts'], ['ask', 'Ask Claude'], ['exports', 'Export']];
 const GROUP_BEFORE = { overview: 'Case file', evidence: 'Records', ask: 'With Claude' };
@@ -18,13 +19,14 @@ const GROUP_BEFORE = { overview: 'Case file', evidence: 'Records', ask: 'With Cl
 export function CaseShell({ caseId }) {
   const app = useApp(); const v = useVault();
   const [, , sub, id] = app.path;
-  const tab = TABS.some(t => t[0] === sub) ? sub : (['doc', 'al', 'ev'].includes(sub) ? null : 'overview');
+  const tab = TABS.some(t => t[0] === sub) ? sub : (['doc', 'al', 'ev', 'pr'].includes(sub) ? null : 'overview');
   const vcount = v.list('verifications', x => x.caseId === caseId && x.status !== 'resolved').length;
   const sugg = v.list('replies', r => r.caseId === caseId && r.status === 'suggested').length;
   let body;
   if (sub === 'doc') body = <DocPage caseId={caseId} docId={id} />;
   else if (sub === 'al') body = <AllegationPage caseId={caseId} alId={id} />;
   else if (sub === 'ev') body = <EventPage caseId={caseId} eventId={id} />;
+  else if (sub === 'pr') body = <ProceedingPage caseId={caseId} procId={id} />;
   else body = {
     overview: <Overview caseId={caseId} />, timeline: <Timeline caseId={caseId} />, documents: <Documents caseId={caseId} />,
     allegations: <Allegations caseId={caseId} />, verify: <Verify caseId={caseId} />, evidence: <Evidence caseId={caseId} />,
@@ -40,15 +42,20 @@ export function CaseShell({ caseId }) {
 
 export function ProceedingForm({ caseId, p, onDone }) {
   const app = useApp(); const v = app.v;
-  const [f, setF] = useState({ number: p?.number || '', title: p?.title || '', court: p?.court || '', status: p?.status || 'Pending', filedBy: p?.filedBy || 'opponent', myRole: p?.myRole || '', theirRole: p?.theirRole || '', notes: p?.notes || '' });
+  const [f, setF] = useState({ number: p?.number || '', title: p?.title || '', court: p?.court || '', status: p?.status || 'Pending', filedBy: p?.filedBy || 'opponent', startedOn: p?.startedOn ? formatDate(p.startedOn) : '', myRole: p?.myRole || '', theirRole: p?.theirRole || '', notes: p?.notes || '' });
   const set = k => e => setF({ ...f, [k]: e.currentTarget.value });
-  const save = async () => { if (!f.number.trim() && !f.title.trim()) return app.toast('Add a case number or title'); if (p) await v.patch('proceedings', p.id, f); else await v.put('proceedings', { ...f, caseId }); onDone(); };
+  const save = async () => {
+    if (!f.number.trim() && !f.title.trim()) return app.toast('Add a case number or title');
+    let startedOn = ''; if (f.startedOn.trim()) { const d = parseDate(f.startedOn); if (!d?.from || d.from !== d.to) return app.toast('Write the start date as dd.mm.yyyy'); startedOn = d.from; }
+    const data = { ...f, startedOn };
+    if (p) await v.patch('proceedings', p.id, data); else await v.put('proceedings', { ...data, caseId }); onDone(); };
   return <div>
     <div class="grid2"><Field label="Case / file number"><input type="text" value={f.number} placeholder="AC 123/2026" onInput={set('number')} /></Field>
       <Field label="Short title"><input type="text" value={f.title} placeholder="DV complaint" onInput={set('title')} /></Field></div>
     <Field label="Court / forum"><input type="text" value={f.court} placeholder="Ld. 1st JM, City" onInput={set('court')} /></Field>
     <div class="grid2"><Field label="Status"><select value={f.status} onChange={set('status')}>{['Pending', 'Under appeal', 'Reserved', 'Disposed', 'Withdrawn', 'Dismissed', 'Closed'].map(s => <option>{s}</option>)}</select></Field>
       <Field label="Started by"><select value={f.filedBy} onChange={set('filedBy')}><option value="opponent">Other side</option><option value="me">Me</option><option value="court">Court / police</option></select></Field></div>
+    <Field label="Filed / started on (optional)"><input type="text" value={f.startedOn} placeholder="dd.mm.yyyy" onInput={set('startedOn')} /></Field>
     <div class="grid2"><Field label="You are the"><input type="text" value={f.myRole} list="roles" placeholder="Respondent No. 1" onInput={set('myRole')} /></Field>
       <Field label="The other side is the"><input type="text" value={f.theirRole} list="roles" placeholder="Petitioner" onInput={set('theirRole')} /></Field></div>
     <datalist id="roles">{['Petitioner', 'Respondent', 'Respondent No. 1', 'Appellant', 'Complainant', 'Accused', 'Opposite Party', 'Plaintiff', 'Defendant'].map(r => <option value={r} />)}</datalist>
@@ -150,9 +157,10 @@ function Overview({ caseId }) {
     <section class="card pad">
       <div class="between"><h3 style="margin:0">Proceedings</h3><button class="btn g s" onClick={() => editProc(null)}>Add proceeding</button></div>
       {!procs.length && <p class="small mut" style="margin:6px 0 0">Each court number (for example AC 123/2026 or MS 456/2023) is a proceeding inside this case.</p>}
-      {procs.length > 0 && <div class="procs">{procs.map(p => <button type="button" class="proc" key={p.id} onClick={() => editProc(p)}>
+      {procs.length > 0 && <div class="procs">{procs.map(p => { const ps = procSummary(v, p); return <button type="button" class="proc" key={p.id} onClick={() => app.nav('case', caseId, 'pr', p.id)}>
         <span class="no">{p.number}</span><span class={'st ' + (p.status || '').toLowerCase()}>{p.status}</span>
-        <span class="sub"><Gloss text={[p.title, p.court].filter(Boolean).join(', ')} /></span></button>)}</div>}
+        <span class="sub"><Gloss text={[p.title, p.court].filter(Boolean).join(', ')} /></span>
+        {ps.line && <span class="dates">{ps.line}</span>}</button>; })}</div>}
     </section>
     <section class="card pad case-id"><div><b>{c.name}</b>{c.opponent && <div class="small mut">Other side: {c.opponent}{c.myRole ? '. You: ' + c.myRole : ''}</div>}</div>
       <span class="row"><button class="lnk" onClick={() => app.sheet.open(close => <Sheet title="Edit case" onClose={close}><CaseForm c={c} onDone={close} /></Sheet>)}>Edit</button>

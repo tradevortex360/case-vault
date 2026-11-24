@@ -172,3 +172,18 @@ input[type=file]{font-size:13px;color:var(--mut);max-width:100%}
 input[type=file]::file-selector-button{font:inherit;font-weight:500;color:var(--acc);background:transparent;border:1px solid var(--line);border-radius:9px;padding:6px 12px;margin-right:10px;cursor:pointer}
 input[type=file]::file-selector-button:hover{border-color:var(--acc)}
 @media(max-width:700px){.toast{bottom:auto;top:12px}}
+
+/* proceeding page */
+.pdates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.pdates>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raise);min-width:0}
+.pdates .k{font-size:12.5px;color:var(--mut)}
+.pdates b{font:600 17px/1.2 var(--serif)}
+.pdates .nx{border-left:3px solid var(--brass)}.pdates .nx b{color:var(--brass)}
+@media(max-width:520px){.pdates{grid-template-columns:1fr 1fr}.pdates .nx{grid-column:1/-1}}
+.list.flat{margin:8px -14px -12px;border:0;border-radius:0;background:transparent}
+.list.flat .item{border-top:1px solid var(--line)}
+.proc .dates{grid-column:1/-1;font-size:13px;color:var(--ink);margin-top:2px}
+
+/* phones zoom into inputs smaller than 16px; keep them at 16px so the page never jumps */
+@media(max-width:700px){input,select,textarea{font-size:16px}}
+.tag{max-width:100%;white-space:normal;overflow-wrap:anywhere}
